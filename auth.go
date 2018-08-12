@@ -5,19 +5,19 @@ import "net/http"
 type AuthHandlerFunc func(http.ResponseWriter, *http.Request, *User, *Session)
 
 type AuthProvider interface {
-	onAuthCallback(parameters map[string][]string) (*User, error)
-	loginUser(accessToken string) (*User, error)
-	userCanViewRepo(user *User, repo string) (bool, error)
+	OnAuthCallback(parameters map[string][]string) (*User, error)
+	LoginUser(accessToken string) (*User, error)
+	UserCanViewRepo(user *User, repo string) (bool, error)
 }
 
 type SessionStore interface {
-	setSession(id string, session *Session) (error)
-	getSession(id string) (*Session, error)
+	SetSession(id string, session *Session) (error)
+	GetSession(id string) (*Session, error)
 }
 
 type UserStore interface {
-	setUser(accessToken string, user *User) (error)
-	getUser(accessToken string) (*User, error)
+	SetUser(accessToken string, user *User) (error)
+	GetUser(accessToken string) (*User, error)
 }
 
 type User struct {

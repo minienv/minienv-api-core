@@ -143,13 +143,13 @@ func getOrCreateSession(r *http.Request) *Session {
 	sessionId := r.Header.Get("Minienv-Session-Id")
 	var session *Session = nil
 	if sessionId != "" {
-		session, _ = sessionStore.getSession(sessionId)
+		session, _ = sessionStore.GetSession(sessionId)
 	}
 	if session == nil {
 		uuid, _ := uuid.NewRandom()
 		sessionId = strings.Replace(uuid.String(), "-", "", -1)
 		session = &Session{Id: sessionId, User: nil}
-		sessionStore.setSession(sessionId, session)
+		sessionStore.SetSession(sessionId, session)
 	}
 	return session
 }
@@ -182,14 +182,14 @@ func authCallback(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, "Invalid auth callback request", 400)
 	}
-	user, err := authProvider.onAuthCallback(r.URL.Query())
+	user, err := authProvider.OnAuthCallback(r.URL.Query())
 	if err != nil {
 		http.Error(w, "Error authenticating user", 400)
 		return
 	}
-	userStore.setUser(user.AccessToken, user)
+	userStore.SetUser(user.AccessToken, user)
 	session.User = user
-	sessionStore.setSession(session.Id, session)
+	sessionStore.SetSession(session.Id, session)
 	meWithSession(w, r, session)
 }
 
@@ -278,11 +278,11 @@ func ping(w http.ResponseWriter, r *http.Request, user *User, session *Session) 
 	var environment *Environment
 	for _, element := range environments {
 		if element.ClaimToken == pingRequest.ClaimToken {
-			userCanViewRepo := true
+			UserCanViewRepo := true
 			if element.Repo != "" && authProvider != nil {
-				userCanViewRepo, _ = authProvider.userCanViewRepo(user, element.Repo)
+				UserCanViewRepo, _ = authProvider.UserCanViewRepo(user, element.Repo)
 			}
-			if userCanViewRepo {
+			if UserCanViewRepo {
 				environment = element
 			}
 			break
@@ -488,7 +488,7 @@ func getEnvUpResponse(details *DeploymentDetails, session *Session) (*EnvUpRespo
 		sessionIdStr = session.Id
 		session.EnvId = details.EnvId
 		session.EnvServiceName = getEnvServiceName(details.EnvId, details.ClaimToken)
-		sessionStore.setSession(session.Id, session)
+		sessionStore.SetSession(session.Id, session)
 	}
 	sessionIdStr = strconv.FormatInt(int64(time.Now().Unix()), 16) + "-" + sessionIdStr
 	envUpResponse := &EnvUpResponse{}
@@ -532,17 +532,17 @@ func authorizeThenServe(handler AuthHandlerFunc) http.HandlerFunc {
 		var user *User = nil
 		var session *Session = nil
 		if accessToken != "" {
-			user, _ := userStore.getUser(accessToken)
+			user, _ := userStore.GetUser(accessToken)
 			if user == nil {
-				user, err := authProvider.loginUser(accessToken)
+				user, err := authProvider.LoginUser(accessToken)
 				if err != nil {
 					http.Error(w, "Not authenticated", 401)
 					return
 				}
-				userStore.setUser(accessToken, user)
+				userStore.SetUser(accessToken, user)
 			}
 		} else {
-			session, _ = sessionStore.getSession(sessionId)
+			session, _ = sessionStore.GetSession(sessionId)
 			if session == nil || session.User == nil {
 				http.Error(w, "Not authenticated", 401)
 				return
@@ -712,7 +712,7 @@ func checkEnvironments() {
 	startEnvironmentCheckTimer()
 }
 
-func (apiServer ApiServer) run() {
+func (apiServer ApiServer) Run() {
 	if len(os.Args) != 2 {
 		log.Fatalf("Usage: %s <port>", os.Args[0])
 	}

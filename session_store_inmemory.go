@@ -10,11 +10,11 @@ func NewInMemorySessionStore() (*InMemorySessionStore) {
 	}
 }
 
-func (store InMemorySessionStore) setSession(id string, session *Session) (error) {
+func (store InMemorySessionStore) SetSession(id string, session *Session) (error) {
 	store.SessionsById[id] = session
 	return nil
 }
 
-func (store InMemorySessionStore) getSession(id string) (*Session, error) {
+func (store InMemorySessionStore) GetSession(id string) (*Session, error) {
 	return store.SessionsById[id], nil
 }

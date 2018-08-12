@@ -28,7 +28,7 @@ func NewRedisSessionStore(address string, password string, dbStr string) (*Redis
 	}, nil
 }
 
-func (store RedisSessionStore) setSession(id string, session *Session) (error) {
+func (store RedisSessionStore) SetSession(id string, session *Session) (error) {
 	bs, err := json.Marshal(session)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (store RedisSessionStore) setSession(id string, session *Session) (error) {
 	return nil
 }
 
-func (store RedisSessionStore) getSession(id string) (*Session, error) {
+func (store RedisSessionStore) GetSession(id string) (*Session, error) {
 	bs, err := store.Client.Get(id).Bytes()
 	if err != nil {
 		return nil, err

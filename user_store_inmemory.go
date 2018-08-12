@@ -10,11 +10,11 @@ func NewInMemoryUserStore() (*InMemoryUserStore) {
 	}
 }
 
-func (store InMemoryUserStore) setUser(accessToken string, user *User) (error) {
+func (store InMemoryUserStore) SetUser(accessToken string, user *User) (error) {
 	store.UsersByAccessToken[accessToken] = user
 	return nil
 }
 
-func (store InMemoryUserStore) getUser(accessToken string) (*User, error) {
+func (store InMemoryUserStore) GetUser(accessToken string) (*User, error) {
 	return store.UsersByAccessToken[accessToken], nil
 }
