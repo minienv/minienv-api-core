@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: $jobName
+spec:
+  template:
+    metadata:
+      labels:
+        app: $appLabel
+    spec:
+      containers:
+        - name: minienv-provisioner
+          image: localhost:5000/minienv/minienv-provisioner:$minienvVersion
+          volumeMounts:
+            - mountPath: "/var/lib/docker"
+              name: docker-storage
+          resources:
+            limits:
+              memory: "512Mi"
+          securityContext:
+            privileged: true
+          env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: MINIENV_NODE_NAME_OVERRIDE
+            value: "$minienvNodeNameOverride"
+          - name: MINIENV_VERSION
+            value: "$minienvVersion"
+          - name: MINIENV_STORAGE_DRIVER
+            value: "$storageDriver"
+          - name: MINIENV_PROVISION_IMAGES
+            value: "$provisionImages"
+      volumes:
+        - name: docker-storage
+          persistentVolumeClaim:
+            claimName: $pvcName
+      restartPolicy: Never
