@@ -713,12 +713,6 @@ func checkEnvironments() {
 }
 
 func (apiServer ApiServer) Run() {
-	if len(os.Args) != 2 {
-		log.Fatalf("Usage: %s <port>", os.Args[0])
-	}
-	if _, err := strconv.Atoi(os.Args[1]); err != nil {
-		log.Fatalf("Invalid port: %s (%s)\n", os.Args[1], err)
-	}
 	minienvVersion = os.Getenv("MINIENV_VERSION")
 	minienvImage = os.Getenv("MINIENV_IMAGE")
 	redisAddress := os.Getenv("MINIENV_REDIS_ADDRESS")
@@ -824,7 +818,7 @@ func (apiServer ApiServer) Run() {
 	http.HandleFunc("/info", addCorsAndCacheHeadersThenServe(authorizeThenServe(info)))
 	http.HandleFunc("/up", addCorsAndCacheHeadersThenServe(authorizeThenServe(up)))
 	http.HandleFunc("/whitelist", addCorsAndCacheHeadersThenServe(authorizeThenServe(whitelist)))
-	err := http.ListenAndServe(":"+os.Args[1], nil)
+	err := http.ListenAndServe(":"+apiServer.Port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
