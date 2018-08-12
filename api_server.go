@@ -49,7 +49,7 @@ var whitelistRepos []*WhitelistRepo
 
 type ApiServer struct {
 	Port string
-	AuthProvider *AuthProvider
+	AuthProvider AuthProvider
 }
 
 type MeResponse struct {
