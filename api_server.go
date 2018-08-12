@@ -713,6 +713,7 @@ func checkEnvironments() {
 }
 
 func (apiServer ApiServer) Run() {
+	authProvider = apiServer.AuthProvider
 	minienvVersion = os.Getenv("MINIENV_VERSION")
 	minienvImage = os.Getenv("MINIENV_IMAGE")
 	redisAddress := os.Getenv("MINIENV_REDIS_ADDRESS")
