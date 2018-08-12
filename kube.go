@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"crypto/tls"
 )
 
 type StatusResponse struct {
@@ -163,11 +164,10 @@ type DeleteServiceResponse struct {
 
 func getHttpClient() *http.Client {
 	// mw:FIX THIS
-	//tr := &http.Transport{
-	//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	//}
-	//client := &http.Client{Transport: tr}
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	return client
 }
 
