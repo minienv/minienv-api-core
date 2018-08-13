@@ -16,7 +16,6 @@ type ApiServer struct {
 }
 
 func (apiServer *ApiServer) GetOrCreateSession(id string) *Session {
-	//sessionId := r.Header.Get("Minienv-Session-Id")
 	var session *Session = nil
 	if id != "" {
 		session, _ = sessionStore.GetSession(id)
@@ -25,7 +24,6 @@ func (apiServer *ApiServer) GetOrCreateSession(id string) *Session {
 		uuid, _ := uuid.NewRandom()
 		id = strings.Replace(uuid.String(), "-", "", -1)
 		session = &Session{Id: id}
-		session.Props = make(map[string]interface{})
 		sessionStore.SetSession(id, session)
 	}
 	return session

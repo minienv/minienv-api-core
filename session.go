@@ -9,5 +9,4 @@ type Session struct {
 	Id string  `json:"sessionId"`
 	EnvId string `json:"envId"`
 	EnvServiceName string `json:"envServiceName"`
-	Props map[string]interface{}
 }
