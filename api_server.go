@@ -1,8 +1,7 @@
 package minienv
 
 import (
-	"encoding/json"
-	"io/ioutil"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"errors"
 )
 
 type ApiServer struct {
@@ -279,7 +277,6 @@ func (apiServer ApiServer) Init() {
 	if sessionStore == nil {
 		sessionStore = NewInMemorySessionStore()
 	}
-	userStore = NewInMemoryUserStore()
 	envPvcStorageClass = os.Getenv("MINIENV_VOLUME_STORAGE_CLASS")
 	if envPvcStorageClass == "" {
 		envPvHostPath = true
