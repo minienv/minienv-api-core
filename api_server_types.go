@@ -52,17 +52,6 @@ type EnvInfoRequest struct {
 }
 
 type EnvInfoResponse struct {
-	Env *EnvInfoResponseEnv `json:"env"`
-}
-
-type EnvInfoResponseEnv struct {
-	Platform string `json:"platform"`
-	Vars *[]EnvInfoResponseEnvVar `json:"vars"`
-}
-
-type EnvInfoResponseEnvVar struct {
-	Name string `json:"name"`
-	DefaultValue string `json:"defaultValue"`
 }
 
 type EnvUpRequest struct {

@@ -19,11 +19,8 @@ const DefaultEnvExpirationSeconds int64 = 60
 const DefaultBranch = "master"
 
 var minienvVersion = "latest"
-var minienvImage = "minienv/minienv:latest"
-var minienvConfigPath = ""
 var sessionStore SessionStore
 var environments []*Environment
-
 
 var kubeServiceToken string
 var kubeServiceBaseUrl string

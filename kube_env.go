@@ -3,22 +3,18 @@ package minienv
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 
-	"gopkg.in/yaml.v2"
 )
 
 var NodeHostName = os.Getenv("MINIENV_NODE_HOST_NAME")
 var NodeHostProtocol = os.Getenv("MINIENV_NODE_HOST_PROTOCOL")
 
 var VarMinienvVersion = "$minienvVersion"
-var VarMinienvImage = "$minienvImage"
 var VarMinienvNodeNameOverride = "$nodeNameOverride"
 var VarMinienvNodeHostProtocol = "$nodeHostProtocol"
 var VarAllowOrigin = "$allowOrigin"
@@ -155,39 +151,11 @@ func getDownloadUrl(path string, gitRepo string, gitBranch string, gitUsername s
 	return url
 }
 
-func downloadEnvConfig(envConfigPath string, gitRepo string, gitBranch string, gitUsername string, gitPassword string) (*EnvConfig, error) {
-	// download .github/minienv.yml
-	minienvConfigUrl := getDownloadUrl(envConfigPath, gitRepo, gitBranch, gitUsername, gitPassword)
-	log.Printf("Downloading minienv config from '%s'...\n", minienvConfigUrl)
-	client := getHttpClient()
-	req, err := http.NewRequest("GET", minienvConfigUrl, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	} else if resp.StatusCode == 200 {
-		var minienvConfig EnvConfig
-		data, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println("Error downloading minienv.yml file: ", err)
-			return nil, err
-		}
-		err = yaml.Unmarshal(data, &minienvConfig)
-		if err != nil {
-			log.Println("Error parsing minienv.yml file: ", err)
-			return nil, err
-		} else {
-			return &minienvConfig, nil
-		}
-	} else {
-		return nil, nil
-	}
-}
-
-func deployEnv(envManager KubeEnvManager, minienvVersion string, minienvImage string, envId string, claimToken string, nodeNameOverride string, nodeHostProtocol string, repo *DeploymentRepo, envConfigPath string, envVars map[string]string, storageDriver string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*DeploymentDetails, error) {
+func deployEnv(envManager KubeEnvManager, minienvVersion string, envId string, claimToken string, nodeNameOverride string, nodeHostProtocol string, repo *DeploymentRepo, envVars map[string]string, storageDriver string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*DeploymentDetails, error) {
 	// delete env, if it exists
 	deleteEnv(envId, claimToken, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	// get deployment details
-	details, _ := envManager.GetDeploymentDetails(envId, claimToken, envConfigPath, repo)
+	details, _ := envManager.GetDeploymentDetails(envId, claimToken, repo)
 	// create persistent volume if using host paths
 	if envManager.UseHostPathPersistentVolumes() {
 		pvResponse, err := getPersistentVolume(getPersistentVolumeName(envId), kubeServiceToken, kubeServiceBaseUrl)
@@ -222,7 +190,7 @@ func deployEnv(envManager KubeEnvManager, minienvVersion string, minienvImage st
 		return nil, err
 	}
 	// save deployment
-	deployment := envManager.GetDeploymentYaml(envId, claimToken, minienvVersion, minienvImage, nodeNameOverride, nodeHostProtocol, storageDriver, repo, details, envVars)
+	deployment := envManager.GetDeploymentYaml(envId, claimToken, minienvVersion, nodeNameOverride, nodeHostProtocol, storageDriver, repo, details, envVars)
 	_, err = saveDeployment(deployment, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving deployment: ", err)

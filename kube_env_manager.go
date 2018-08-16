@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
-	"strconv"
 	"fmt"
 )
 
@@ -20,8 +19,9 @@ type KubeEnvManager interface {
 	GetPersistentVolumeClaimYamlTemplate() (string)
 	GetServiceYamlTemplate() (string)
 	GetDeploymentYamlTemplate() (string)
-	GetDeploymentDetails(envId string, claimToken string, envConfigPath string, repo *DeploymentRepo) (*DeploymentDetails, error)
-	GetDeploymentYaml(envId string, claimToken string, minienvVersion string, minienvImage string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string)
+	GetDeploymentTabsFromDockerCompose(repo *DeploymentRepo) (*[]*DeploymentTab, error)
+	GetDeploymentDetails(envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error)
+	GetDeploymentYaml(envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string)
 	GetServiceYaml(envId string, claimToken string, details *DeploymentDetails) (string)
 	GetPersistentVolumeYaml(envId string) (string)
 	GetPersistentVolumeClaimYaml(envId string) (string)
@@ -75,86 +75,49 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYamlTemplate() (string) {
 	return envManager.DeploymentYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentDetails(envId string, claimToken string, envConfigPath string, repo *DeploymentRepo) (*DeploymentDetails, error) {
-	envConfig, err := downloadEnvConfig(envConfigPath, repo.Repo, repo.Branch, repo.Username, repo.Password)
-	if err != nil {
-		log.Println("Error downloading minienv.json", err)
-	}
+func (envManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(repo *DeploymentRepo) (*[]*DeploymentTab, error) {
 	var tabs []*DeploymentTab
-	if envConfig == nil || envConfig.Runtime == nil || envConfig.Runtime.Platform == "" {
-		// download docker-compose file if platform not specified in minienv config
-		// first try yml, then yaml
-		dockerComposeUrl := getDownloadUrl("docker-compose.yml", repo.Repo, repo.Branch, repo.Username, repo.Password)
-		log.Printf("Downloading docker-compose file from '%s'...\n", dockerComposeUrl)
-		client := getHttpClient()
-		req, err := http.NewRequest("GET", dockerComposeUrl, nil)
-		resp, err := client.Do(req)
+	dockerComposeUrl := getDownloadUrl("docker-compose.yml", repo.Repo, repo.Branch, repo.Username, repo.Password)
+	log.Printf("Downloading docker-compose file from '%s'...\n", dockerComposeUrl)
+	client := getHttpClient()
+	req, err := http.NewRequest("GET", dockerComposeUrl, nil)
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		log.Println("Error downloading docker-compose.yml: ", err)
+		dockerComposeUrl := getDownloadUrl("docker-compose.yaml", repo.Repo, repo.Branch, repo.Username, repo.Password)
+		req, err = http.NewRequest("GET", dockerComposeUrl, nil)
+		resp, err = client.Do(req)
 		if err != nil || resp.StatusCode != 200 {
-			log.Println("Error downloading docker-compose.yml: ", err)
-			dockerComposeUrl := getDownloadUrl("docker-compose.yaml", repo.Repo, repo.Branch, repo.Username, repo.Password)
-			req, err = http.NewRequest("GET", dockerComposeUrl, nil)
-			resp, err = client.Do(req)
-			if err != nil || resp.StatusCode != 200 {
-				log.Println("Error downloading docker-compose.yaml: ", err)
-				return nil, err
-			}
+			log.Println("Error downloading docker-compose.yaml: ", err)
+			return nil, err
 		}
-		m := make(map[interface{}]interface{})
-		data, err := ioutil.ReadAll(resp.Body)
+	}
+	m := make(map[interface{}]interface{})
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Error downloading docker-compose file: ", err)
+		return nil, err
+	} else {
+		err = yaml.Unmarshal(data, &m)
 		if err != nil {
-			log.Println("Error downloading docker-compose file: ", err)
+			log.Println("Error parsing docker-compose file: ", err)
 			return nil, err
 		} else {
-			err = yaml.Unmarshal(data, &m)
-			if err != nil {
-				log.Println("Error parsing docker-compose file: ", err)
-				return nil, err
-			} else {
-				for k, v := range m {
-					populateTabs(v, &tabs, k.(string))
-				}
+			for k, v := range m {
+				populateTabs(v, &tabs, k.(string))
 			}
 		}
 	}
-	// populate docker compose names and paths
-	if envConfig != nil && envConfig.Metadata != nil && envConfig.Metadata.AppTabs != nil && len(*envConfig.Metadata.AppTabs) > 0 {
-		for _, appTab := range *envConfig.Metadata.AppTabs {
-			tabUpdated := false
-			// update the original docker compose port if it exists
-			for _, tab := range tabs {
-				if tab.Port == appTab.Port && tab.AppTab == nil {
-					tab.AppTab = &appTab
-					tab.Hide = appTab.Hide
-					if appTab.Name != "" {
-						tab.Name = appTab.Name
-					}
-					if appTab.Path != "" {
-						tab.Path = appTab.Path
-					}
-					tabUpdated = true
-					break
-				}
-			}
-			if ! tabUpdated {
-				// add other docker compose ports
-				tab := &DeploymentTab{}
-				tab.AppTab = &appTab
-				tab.Hide = appTab.Hide
-				tab.Port = appTab.Port
-				tab.Name = strconv.Itoa(appTab.Port)
-				tabs = append(tabs, tab)
-				if appTab.Name != "" {
-					tab.Name = appTab.Name
-				}
-				if appTab.Path != "" {
-					tab.Path = appTab.Path
-				}
-			}
-		}
+	return &tabs, nil
+}
+
+func (envManager *BaseKubeEnvManager) GetDeploymentDetails(envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error) {
+	tabs, err := envManager.GetDeploymentTabsFromDockerCompose(repo)
+	if err != nil {
+		return nil, err
 	}
 	// ports
 	details := &DeploymentDetails{}
-	details.EnvConfig = envConfig
 	details.LogPort = DefaultLogPort
 	details.EditorPort = DefaultEditorPort
 	details.AppPort = DefaultProxyPort
@@ -163,28 +126,14 @@ func (envManager *BaseKubeEnvManager) GetDeploymentDetails(envId string, claimTo
 	details.ClaimToken = claimToken
 	details.LogUrl = fmt.Sprintf("%s://%s-%s.%s", NodeHostProtocol, "$sessionId", details.LogPort, details.NodeHostName)
 	details.EditorUrl = fmt.Sprintf("%s://%s-%s.%s", NodeHostProtocol, "$sessionId", details.EditorPort, details.NodeHostName)
-	if envConfig != nil && envConfig.Metadata != nil && envConfig.Metadata.EditorTab != nil {
-		if envConfig.Metadata.EditorTab.Hide {
-			details.EditorUrl = ""
-		}
-	}
-	// add tab based on port if no tabs already provided
-	if len(tabs) == 0 && envConfig != nil && envConfig.Runtime != nil && envConfig.Runtime.Port > 0 {
-		tab := &DeploymentTab{}
-		tab.Hide = false
-		tab.Port = envConfig.Runtime.Port
-		tab.Name = strconv.Itoa(envConfig.Runtime.Port)
-		tab.Path = "/"
-		tabs = append(tabs, tab)
-	}
-	for _, tab := range tabs {
+	for _, tab := range *tabs {
 		tab.Url = fmt.Sprintf("%s://%s-%s-%d.%s%s", NodeHostProtocol, "$sessionId", details.AppPort, tab.Port, details.NodeHostName, tab.Path)
 	}
-	details.Tabs = &tabs
+	details.Tabs = tabs
 	return details, nil
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken string, minienvVersion string, minienvImage string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string) {
+func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string) {
 	envVarsYaml := ""
 	if envVars != nil {
 		first := true
@@ -219,7 +168,6 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken
 	}
 	deployment := envManager.GetDeploymentYamlTemplate()
 	deployment = strings.Replace(deployment, VarMinienvVersion, minienvVersion, -1)
-	deployment = strings.Replace(deployment, VarMinienvImage, minienvImage, -1)
 	deployment = strings.Replace(deployment, VarMinienvNodeNameOverride, nodeNameOverride, -1)
 	deployment = strings.Replace(deployment, VarMinienvNodeHostProtocol, nodeHostProtocol, -1)
 	deployment = strings.Replace(deployment, VarAllowOrigin, allowOrigin, -1)

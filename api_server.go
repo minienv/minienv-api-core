@@ -138,30 +138,12 @@ func (apiServer *ApiServer) Info(envInfoRequest *EnvInfoRequest, session *Sessio
 			}
 		}
 		if ! repoWhitelisted {
-			log.Println("Up request failed; repo not whitelisted.")
+			log.Println("Info request failed; repo not whitelisted.")
 			return nil, errors.New("requested repo not whitelisted")
 		}
 	}
 	// create response
 	var envInfoResponse = EnvInfoResponse{}
-	minienvConfig, err := downloadEnvConfig(minienvConfigPath, envInfoRequest.Repo, envInfoRequest.Branch, envInfoRequest.Username, envInfoRequest.Password)
-	if err != nil {
-		log.Println("Error getting minienv config: ", err)
-		return nil, err
-	}
-	if minienvConfig != nil && minienvConfig.Metadata != nil && minienvConfig.Metadata.Env != nil {
-		envInfoResponse.Env = &EnvInfoResponseEnv{}
-		if minienvConfig.Metadata.Env.Vars != nil {
-			var envVars []EnvInfoResponseEnvVar
-			for _, configEnvVar := range *minienvConfig.Metadata.Env.Vars {
-				envVar := EnvInfoResponseEnvVar{}
-				envVar.Name = configEnvVar.Name
-				envVar.DefaultValue = configEnvVar.DefaultValue
-				envVars = append(envVars, envVar)
-			}
-			envInfoResponse.Env.Vars = &envVars
-		}
-	}
 	return &envInfoResponse, nil
 }
 
@@ -217,7 +199,7 @@ func (apiServer *ApiServer) Up(envUpRequest *EnvUpRequest, session *Session) (*E
 				Username: envUpRequest.Username,
 				Password: envUpRequest.Password,
 			}
-			details, err := deployEnv(apiServer.EnvManager, minienvVersion, minienvImage, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, repo, minienvConfigPath, envUpRequest.EnvVars, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+			details, err := deployEnv(apiServer.EnvManager, minienvVersion, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, repo, envUpRequest.EnvVars, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			if err != nil || details == nil {
 				log.Print("Error creating deployment: ", err)
 				return nil, errors.New("error creating deployment")
@@ -289,8 +271,6 @@ func (apiServer *ApiServer) Init() {
 		apiServer.EnvManager = NewBaseKubeEnvManager()
 	}
 	minienvVersion = os.Getenv("MINIENV_VERSION")
-	minienvImage = os.Getenv("MINIENV_IMAGE")
-	minienvConfigPath = os.Getenv("MINIENV_CONFIG_PATH")
 	redisAddress := os.Getenv("MINIENV_REDIS_ADDRESS")
 	redisPassword := os.Getenv("MINIENV_REDIS_PASSWORD")
 	redisDb := os.Getenv("MINIENV_REDIS_DB")
