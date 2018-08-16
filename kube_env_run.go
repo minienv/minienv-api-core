@@ -141,6 +141,7 @@ func deployEnv(envManager KubeEnvManager, minienvVersion string, envId string, c
 	}
 	// create the service first - we need the ports to serialize the details with the deployment
 	service := envManager.GetServiceYaml(envId, claimToken, details)
+	log.Println(service)
 	_, err = saveService(service, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving service: ", err)
