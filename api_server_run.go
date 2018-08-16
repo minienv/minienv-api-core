@@ -59,7 +59,7 @@ func initEnvironments(envManager KubeEnvManager, envCount int) {
 				getDeploymentResp.Spec.Template.Metadata.Annotations.EnvDetails != "" {
 				log.Printf("Loading environment %s from deployment metadata.\n", environment.Id)
 				running = true
-				details  := deploymentDetailsFromString(getDeploymentResp.Spec.Template.Metadata.Annotations.EnvDetails)
+				details  := envManager.DeserializeDeploymentDetails(getDeploymentResp.Spec.Template.Metadata.Annotations.EnvDetails)
 				environment.Status = StatusRunning
 				environment.ClaimToken = getDeploymentResp.Spec.Template.Metadata.Annotations.ClaimToken
 				environment.LastActivity = time.Now().Unix()

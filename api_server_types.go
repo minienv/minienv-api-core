@@ -1,11 +1,5 @@
 package minienv
 
-type WhitelistRepo struct {
-	Name string `json:"name"`
-	Url string `json:"url"`
-	Branch string `json:"branch"`
-}
-
 type Environment struct {
 	Id string
 	Status int
@@ -16,6 +10,12 @@ type Environment struct {
 	Branch string
 	Details *DeploymentDetails
 	ExpirationSeconds int64
+}
+
+type WhitelistRepo struct {
+	Name string `json:"name"`
+	Url string `json:"url"`
+	Branch string `json:"branch"`
 }
 
 type ClaimRequest struct {

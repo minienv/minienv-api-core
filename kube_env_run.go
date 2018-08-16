@@ -1,7 +1,6 @@
 package minienv
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -42,46 +41,6 @@ var DefaultLogPort = "8001"
 var DefaultEditorPort = "8002"
 var DefaultProxyPort = "8003"
 
-type EnvConfig struct {
-	Env string                `yaml:"env"`
-	Disabled bool             `yaml:"disabled"`
-	Expiration int            `yaml:"expiration"`
-	Runtime *EnvConfigRuntime `yaml:"runtime"`
-	Metadata *EnvConfigMeta   `yaml:"metadata"`
-}
-
-type EnvConfigRuntime struct {
-	Platform string `yaml:"platform"`
-	Port int `yaml:"port"`
-	Command string `yaml:"command"`
-}
-
-type EnvConfigMeta struct {
-	Env       *EnvConfigMetaEnv       `yaml:"env"`
-	EditorTab *EnvConfigMetaEditorTab `yaml:"editorTab"`
-	AppTabs   *[]EnvConfigMetaAppTab  `yaml:"appTabs"`
-}
-
-type EnvConfigMetaEnv struct {
-	Vars *[]EnvConfigMetaEnvVar `yaml:"vars"`
-}
-
-type EnvConfigMetaEnvVar struct {
-	Name string `yaml:"name"`
-	DefaultValue string `yaml:"defaultValue"`
-}
-
-type EnvConfigMetaEditorTab struct {
-	Hide bool `yaml:"hide"`
-	SrcDir string `yaml:"srcDir"`
-}
-
-type EnvConfigMetaAppTab struct {
-	Port int    `yaml:"port"`
-	Hide bool   `yaml:"hide"`
-	Name string `yaml:"name"`
-	Path string `yaml:"path"`
-}
 
 type DeploymentTab struct {
 	Port int `json:"port"`
@@ -89,7 +48,7 @@ type DeploymentTab struct {
 	Hide bool   `json:"hide"`
 	Name string `json:"name"`
 	Path string `json:"path"`
-	AppTab *EnvConfigMetaAppTab `json:"-"`
+	//AppTab *EnvConfigMetaAppTab `json:"-"`
 }
 
 type DeploymentRepo struct {
@@ -109,7 +68,8 @@ type DeploymentDetails struct {
 	EditorUrl string
 	AppPort string
 	Tabs *[]*DeploymentTab
-	EnvConfig *EnvConfig `json:"-"`
+	Props *map[string]interface{}
+	//EnvConfig *EnvConfig `json:"-"`
 }
 
 func getEnvDeployment(envId string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {
@@ -200,25 +160,7 @@ func deployEnv(envManager KubeEnvManager, minienvVersion string, envId string, c
 	return details, nil
 }
 
-func deploymentDetailsToString(details *DeploymentDetails) (string) {
-	b, err := json.Marshal(details)
-	if err != nil {
-		return ""
-	}
-	s := strings.Replace(string(b), "\"", "\\\"", -1)
-	return s
-}
 
-func deploymentDetailsFromString(envDetails string) (*DeploymentDetails) {
-	envDetails = strings.Replace(envDetails, "\\\"", "\"", -1)
-	var deploymentDetails DeploymentDetails
-	err := json.Unmarshal([]byte(envDetails), &deploymentDetails)
-	if err != nil {
-		return nil
-	} else {
-		return &deploymentDetails
-	}
-}
 
 func populateTabs(v interface{}, tabs *[]*DeploymentTab, parent string) {
 	typ := reflect.TypeOf(v).Kind()

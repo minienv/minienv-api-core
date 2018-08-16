@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
 	"fmt"
+	"encoding/json"
 )
 
 type KubeEnvManager interface {
@@ -25,6 +26,8 @@ type KubeEnvManager interface {
 	GetServiceYaml(envId string, claimToken string, details *DeploymentDetails) (string)
 	GetPersistentVolumeYaml(envId string) (string)
 	GetPersistentVolumeClaimYaml(envId string) (string)
+	SerializeDeploymentDetails(details *DeploymentDetails) (string)
+	DeserializeDeploymentDetails(detailsStr string) (*DeploymentDetails)
 }
 
 type BaseKubeEnvManager struct {
@@ -147,45 +150,22 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken
 			envVarsYaml += "\n            value: \"" + v + "\""
 		}
 	}
-	//platform := ""
-	//platformCommand := ""
-	//platformPort := ""
-	editorSrcDir := ""
-	if details.EnvConfig != nil {
-		//if details.EnvConfig.Runtime != nil && details.EnvConfig.Runtime.Platform != "" {
-		//	platform = details.EnvConfig.Runtime.Platform
-		//	platformCommand = details.EnvConfig.Runtime.Command
-		//	if details.EnvConfig.Runtime.Port > 0 {
-		//		platformPort = strconv.Itoa(details.EnvConfig.Runtime.Port)
-		//	} else if len(*details.Tabs) > 0 {
-		//		tabs := *details.Tabs
-		//		platformPort = strconv.Itoa(tabs[0].Port)
-		//	}
-		//}
-		if details.EnvConfig.Metadata != nil && details.EnvConfig.Metadata.EditorTab != nil {
-			editorSrcDir = details.EnvConfig.Metadata.EditorTab.SrcDir
-		}
-	}
 	deployment := envManager.GetDeploymentYamlTemplate()
 	deployment = strings.Replace(deployment, VarMinienvVersion, minienvVersion, -1)
 	deployment = strings.Replace(deployment, VarMinienvNodeNameOverride, nodeNameOverride, -1)
 	deployment = strings.Replace(deployment, VarMinienvNodeHostProtocol, nodeHostProtocol, -1)
 	deployment = strings.Replace(deployment, VarAllowOrigin, allowOrigin, -1)
 	deployment = strings.Replace(deployment, VarStorageDriver, storageDriver, -1)
-	//deployment = strings.Replace(deployment, VarMinienvPlatformPort, platformPort, -1) // this must be replaced before VarMinienvPlatform
-	//deployment = strings.Replace(deployment, VarMinienvPlatformCommand, platformCommand, -1) // this must be replaced before VarMinienvPlatform
-	//deployment = strings.Replace(deployment, VarMinienvPlatform, platform, -1)
 	deployment = strings.Replace(deployment, VarGitRepoWithCreds, getUrlWithCredentials(repo.Repo, repo.Username, repo.Password), -1) // make sure this replace is done before gitRepo
 	deployment = strings.Replace(deployment, VarGitRepo, repo.Repo, -1)
 	deployment = strings.Replace(deployment, VarGitBranch, repo.Branch, -1)
 	deployment = strings.Replace(deployment, VarProxyPort, details.AppPort, -1)
 	deployment = strings.Replace(deployment, VarLogPort, details.LogPort, -1)
 	deployment = strings.Replace(deployment, VarEditorPort, details.EditorPort, -1)
-	deployment = strings.Replace(deployment, VarEditorSrcDir, editorSrcDir, -1)
 	deployment = strings.Replace(deployment, VarDeploymentName, getEnvDeploymentName(envId), -1)
 	deployment = strings.Replace(deployment, VarAppLabel, getEnvAppLabel(envId, claimToken), -1)
 	deployment = strings.Replace(deployment, VarClaimToken, claimToken, -1)
-	deployment = strings.Replace(deployment, VarEnvDetails, deploymentDetailsToString(details), -1)
+	deployment = strings.Replace(deployment, VarEnvDetails, envManager.SerializeDeploymentDetails(details), -1)
 	deployment = strings.Replace(deployment, VarEnvVars, envVarsYaml, -1)
 	deployment = strings.Replace(deployment, VarPvcName, getPersistentVolumeClaimName(envId), -1)
 	return deployment
@@ -214,4 +194,24 @@ func (envManager *BaseKubeEnvManager) GetPersistentVolumeClaimYaml(envId string)
 	pvc = strings.Replace(pvc, VarPvcName, getPersistentVolumeClaimName(envId), -1)
 	pvc = strings.Replace(pvc, VarPvcStorageClass, envManager.GetPersistentVolumeStorageClass(), -1)
 	return pvc
+}
+
+func (envManager *BaseKubeEnvManager) SerializeDeploymentDetails(details *DeploymentDetails) (string) {
+	b, err := json.Marshal(details)
+	if err != nil {
+		return ""
+	}
+	s := strings.Replace(string(b), "\"", "\\\"", -1)
+	return s
+}
+
+func (envManager *BaseKubeEnvManager) DeserializeDeploymentDetails(detailsStr string) (*DeploymentDetails) {
+	detailsStr = strings.Replace(detailsStr, "\\\"", "\"", -1)
+	var deploymentDetails DeploymentDetails
+	err := json.Unmarshal([]byte(detailsStr), &deploymentDetails)
+	if err != nil {
+		return nil
+	} else {
+		return &deploymentDetails
+	}
 }
