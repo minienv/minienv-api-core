@@ -21,7 +21,7 @@ var VarStorageDriver = "$storageDriver"
 var VarGitRepo = "$gitRepo"
 var VarGitRepoWithCreds = "$gitRepoWithCreds"
 var VarGitBranch = "$gitBranch"
-var VarProxyPort = "$proxyPort"
+var VarAppProxyPort = "$appProxyPort"
 var VarLogPort = "$logPort"
 var VarEditorPort = "$editorPort"
 var VarPvName = "$pvName"
@@ -38,7 +38,7 @@ var VarEnvVars = "$envVars"
 
 var DefaultLogPort = "8001"
 var DefaultEditorPort = "8002"
-var DefaultProxyPort = "8003"
+var DefaultAppProxyPort = "8003"
 
 
 type DeploymentTab struct {
@@ -58,15 +58,15 @@ type DeploymentRepo struct {
 
 type DeploymentDetails struct {
 	NodeHostName string
-	EnvId string
-	ClaimToken string
-	LogPort string
-	LogUrl string
-	EditorPort string
-	EditorUrl string
-	AppPort string
-	Tabs *[]*DeploymentTab
-	Props *map[string]interface{}
+	EnvId        string
+	ClaimToken   string
+	LogPort      string
+	LogUrl       string
+	EditorPort   string
+	EditorUrl    string
+	AppProxyPort string
+	Tabs         *[]*DeploymentTab
+	Props        *map[string]interface{}
 }
 
 func getEnvDeployment(envId string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {

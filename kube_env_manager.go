@@ -123,14 +123,14 @@ func (envManager *BaseKubeEnvManager) GetDeploymentDetails(envId string, claimTo
 	details := &DeploymentDetails{}
 	details.LogPort = DefaultLogPort
 	details.EditorPort = DefaultEditorPort
-	details.AppPort = DefaultProxyPort
+	details.AppProxyPort = DefaultAppProxyPort
 	details.NodeHostName = NodeHostName
 	details.EnvId = envId
 	details.ClaimToken = claimToken
 	details.LogUrl = fmt.Sprintf("%s://%s-%s.%s", NodeHostProtocol, "$sessionId", details.LogPort, details.NodeHostName)
 	details.EditorUrl = fmt.Sprintf("%s://%s-%s.%s", NodeHostProtocol, "$sessionId", details.EditorPort, details.NodeHostName)
 	for _, tab := range *tabs {
-		tab.Url = fmt.Sprintf("%s://%s-%s-%d.%s%s", NodeHostProtocol, "$sessionId", details.AppPort, tab.Port, details.NodeHostName, tab.Path)
+		tab.Url = fmt.Sprintf("%s://%s-%s-%d.%s%s", NodeHostProtocol, "$sessionId", details.AppProxyPort, tab.Port, details.NodeHostName, tab.Path)
 	}
 	details.Tabs = tabs
 	return details, nil
@@ -159,7 +159,7 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken
 	deployment = strings.Replace(deployment, VarGitRepoWithCreds, getUrlWithCredentials(repo.Repo, repo.Username, repo.Password), -1) // make sure this replace is done before gitRepo
 	deployment = strings.Replace(deployment, VarGitRepo, repo.Repo, -1)
 	deployment = strings.Replace(deployment, VarGitBranch, repo.Branch, -1)
-	deployment = strings.Replace(deployment, VarProxyPort, details.AppPort, -1)
+	deployment = strings.Replace(deployment, VarAppProxyPort, details.AppProxyPort, -1)
 	deployment = strings.Replace(deployment, VarLogPort, details.LogPort, -1)
 	deployment = strings.Replace(deployment, VarEditorPort, details.EditorPort, -1)
 	deployment = strings.Replace(deployment, VarDeploymentName, getEnvDeploymentName(envId), -1)
@@ -177,7 +177,7 @@ func (envManager *BaseKubeEnvManager) GetServiceYaml(envId string, claimToken st
 	service = strings.Replace(service, VarAppLabel, getEnvAppLabel(envId, claimToken), -1)
 	service = strings.Replace(service, VarLogPort, details.LogPort, -1)
 	service = strings.Replace(service, VarEditorPort, details.EditorPort, -1)
-	service = strings.Replace(service, VarProxyPort, details.AppPort, -1)
+	service = strings.Replace(service, VarAppProxyPort, details.AppProxyPort, -1)
 	return service
 }
 
