@@ -13,6 +13,7 @@ import (
 )
 
 type ApiServer struct {
+	EnvManager KubeEnvManager
 }
 
 func (apiServer *ApiServer) GetOrCreateSession(id string) *Session {
@@ -143,7 +144,7 @@ func (apiServer *ApiServer) Info(envInfoRequest *EnvInfoRequest, session *Sessio
 	}
 	// create response
 	var envInfoResponse = EnvInfoResponse{}
-	minienvConfig, err := downloadMinienvConfig(envInfoRequest.Repo, envInfoRequest.Branch, envInfoRequest.Username, envInfoRequest.Password)
+	minienvConfig, err := downloadEnvConfig(minienvConfigPath, envInfoRequest.Repo, envInfoRequest.Branch, envInfoRequest.Username, envInfoRequest.Password)
 	if err != nil {
 		log.Println("Error getting minienv config: ", err)
 		return nil, err
@@ -210,7 +211,13 @@ func (apiServer *ApiServer) Up(envUpRequest *EnvUpRequest, session *Session) (*E
 			log.Printf("Creating new deployment...")
 			// change status to claimed, so the scheduler doesn't think it has stopped when the old repo is shutdown
 			environment.Status = StatusClaimed
-			details, err := deployEnv(minienvVersion, minienvImage, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, envUpRequest.Repo, envUpRequest.Branch, envUpRequest.Username, envUpRequest.Password, envUpRequest.EnvVars, storageDriver, envPvTemplate, envPvcTemplate, envDeploymentTemplate, envServiceTemplate, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+			repo := &DeploymentRepo{
+				Repo: envUpRequest.Repo,
+				Branch: envUpRequest.Branch,
+				Username: envUpRequest.Username,
+				Password: envUpRequest.Password,
+			}
+			details, err := deployEnv(apiServer.EnvManager, minienvVersion, minienvImage, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, repo, minienvConfigPath, envUpRequest.EnvVars, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			if err != nil || details == nil {
 				log.Print("Error creating deployment: ", err)
 				return nil, errors.New("error creating deployment")
@@ -243,10 +250,10 @@ func getEnvUpResponse(details *DeploymentDetails, session *Session) (*EnvUpRespo
 	envUpResponse := &EnvUpResponse{}
 	envUpResponse.LogUrl = strings.Replace(details.LogUrl, "$sessionId", sessionIdStr, -1)
 	envUpResponse.EditorUrl = strings.Replace(details.EditorUrl, "$sessionId", sessionIdStr, -1)
-	envUpResponse.Tabs = []Tab{}
+	envUpResponse.Tabs = []DeploymentTab{}
 	if details.Tabs != nil {
 		for _, element := range *details.Tabs {
-			tab := Tab{
+			tab := DeploymentTab{
 				Port: element.Port,
 				Url: strings.Replace(element.Url, "$sessionId", sessionIdStr, -1),
 				Name: element.Name,
@@ -258,9 +265,32 @@ func getEnvUpResponse(details *DeploymentDetails, session *Session) (*EnvUpRespo
 	return envUpResponse
 }
 
-func (apiServer ApiServer) Init() {
+func NewBaseKubeEnvManager() (*BaseKubeEnvManager) {
+	envManager := &BaseKubeEnvManager{}
+	envManager.ProvisionerJobYamlTemplate = loadFile("./provisioner-job.yml")
+	envManager.ProvisionVolumeSize = os.Getenv("MINIENV_PROVISION_VOLUME_SIZE")
+	envManager.ProvisionImages = os.Getenv("MINIENV_PROVISION_IMAGES")
+	envManager.PersistentVolumeStorageClass = os.Getenv("MINIENV_VOLUME_STORAGE_CLASS")
+	if envManager.PersistentVolumeStorageClass == "" {
+		envManager.PersistentVolumeHostPath = true
+		envManager.PersistentVolumeYamlTemplate = loadFile("./env-pv-host-path.yml")
+		envManager.PersistentVolumeClaimYamlTemplate = loadFile("./env-pvc-host-path.yml")
+	} else {
+		envManager.PersistentVolumeHostPath = false
+		envManager.PersistentVolumeClaimYamlTemplate = loadFile("./env-pvc-storage-class.yml")
+	}
+	envManager.ServiceYamlTemplate = loadFile("./env-service.yml")
+	envManager.DeploymentYamlTemplate = loadFile("./env-deployment.yml")
+	return envManager
+}
+
+func (apiServer *ApiServer) Init() {
+	if apiServer.EnvManager == nil {
+		apiServer.EnvManager = NewBaseKubeEnvManager()
+	}
 	minienvVersion = os.Getenv("MINIENV_VERSION")
 	minienvImage = os.Getenv("MINIENV_IMAGE")
+	minienvConfigPath = os.Getenv("MINIENV_CONFIG_PATH")
 	redisAddress := os.Getenv("MINIENV_REDIS_ADDRESS")
 	redisPassword := os.Getenv("MINIENV_REDIS_PASSWORD")
 	redisDb := os.Getenv("MINIENV_REDIS_DB")
@@ -275,21 +305,6 @@ func (apiServer ApiServer) Init() {
 	if sessionStore == nil {
 		sessionStore = NewInMemorySessionStore()
 	}
-	envPvcStorageClass = os.Getenv("MINIENV_VOLUME_STORAGE_CLASS")
-	if envPvcStorageClass == "" {
-		envPvHostPath = true
-		envPvTemplate = loadFile("./env-pv-host-path.yml")
-		envPvcTemplate = loadFile("./env-pvc-host-path.yml")
-
-	} else {
-		envPvHostPath = false
-		envPvcTemplate = loadFile("./env-pvc-storage-class.yml")
-	}
-	envDeploymentTemplate = loadFile("./env-deployment.yml")
-	envServiceTemplate = loadFile("./env-service.yml")
-	provisionerJobTemplate = loadFile("./provisioner-job.yml")
-	provisionVolumeSize = os.Getenv("MINIENV_PROVISION_VOLUME_SIZE")
-	provisionImages = os.Getenv("MINIENV_PROVISION_IMAGES")
 	kubeServiceProtocol := os.Getenv("KUBERNETES_SERVICE_PROTOCOL")
 	kubeServiceHost := os.Getenv("KUBERNETES_SERVICE_HOST")
 	kubeServicePort := os.Getenv("KUBERNETES_SERVICE_PORT")
@@ -354,5 +369,5 @@ func (apiServer ApiServer) Init() {
 			}
 		}
 	}
-	initEnvironments(envCount)
+	initEnvironments(apiServer.EnvManager, envCount)
 }

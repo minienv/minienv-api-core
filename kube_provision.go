@@ -62,23 +62,18 @@ func deleteProvisioner(envId string, kubeServiceToken string, kubeServiceBaseUrl
 	return deleted, err
 }
 
-func deployProvisioner(minienvVersion string, envId string, nodeNameOverride string, storageDriver string, pvTemplate string, pvcTemplate string, jobTemplate string, provisionVolumeSize string, provisionImages string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (error) {
+func deployProvisioner(envManager KubeEnvManager, minienvVersion string, envId string, nodeNameOverride string, storageDriver string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (error) {
 	// delete example, if it exists
 	deleteProvisioner(envId, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	// create persistent volume if using host paths
-	if envPvHostPath {
-		pvName := getPersistentVolumeName(envId)
-		pvPath := getPersistentVolumePath(envId)
-		pvResponse, err := getPersistentVolume(pvName, kubeServiceToken, kubeServiceBaseUrl)
+	// create persistent volume if using host paths
+	if envManager.UseHostPathPersistentVolumes() {
+		pvResponse, err := getPersistentVolume(getPersistentVolumeName(envId), kubeServiceToken, kubeServiceBaseUrl)
 		if err != nil {
 			log.Println("Error getting persistent volume: ", err)
 			return err
 		} else if pvResponse == nil {
-			pv := pvTemplate
-			pv = strings.Replace(pv, VarPvName, pvName, -1)
-			pv = strings.Replace(pv, VarPvSize, provisionVolumeSize, -1)
-			pv = strings.Replace(pv, VarPvPath, pvPath, -1)
-			_, err = savePersistentVolume(pv, kubeServiceToken, kubeServiceBaseUrl)
+			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envId), kubeServiceToken, kubeServiceBaseUrl)
 			if err != nil {
 				log.Println("Error saving persistent volume: ", err)
 				return err
@@ -86,17 +81,12 @@ func deployProvisioner(minienvVersion string, envId string, nodeNameOverride str
 		}
 	}
 	// create persistent volume claim, if not exists
-	pvcName := getPersistentVolumeClaimName(envId)
-	pvcResponse, err := getPersistentVolumeClaim(pvcName, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+	pvcResponse, err := getPersistentVolumeClaim(getPersistentVolumeClaimName(envId), kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error getting persistent volume claim: ", err)
 		return err
 	} else if pvcResponse == nil {
-		pvc := pvcTemplate
-		pvc = strings.Replace(pvc, VarPvSize, provisionVolumeSize, -1)
-		pvc = strings.Replace(pvc, VarPvcName, pvcName, -1)
-		pvc = strings.Replace(pvc, VarPvcStorageClass, envPvcStorageClass, -1)
-		_, err = savePersistentVolumeClaim(pvc, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+		_, err = savePersistentVolumeClaim(envManager.GetPersistentVolumeClaimYaml(envId), kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 		if err != nil {
 			log.Println("Error saving persistent volume claim: ", err)
 			return err
@@ -105,14 +95,14 @@ func deployProvisioner(minienvVersion string, envId string, nodeNameOverride str
 	// create job
 	jobName := getProvisionerJobName(envId)
 	appLabel := getProvisionerAppLabel(envId)
-	job := jobTemplate
+	job := envManager.GetProvisionerJobYamlTemplate()
 	job = strings.Replace(job, VarMinienvNodeNameOverride, nodeNameOverride, -1)
 	job = strings.Replace(job, VarMinienvVersion, minienvVersion, -1)
 	job = strings.Replace(job, VarJobName, jobName, -1)
 	job = strings.Replace(job, VarAppLabel, appLabel, -1)
 	job = strings.Replace(job, VarStorageDriver, storageDriver, -1)
-	job = strings.Replace(job, VarProvisionImages, provisionImages, -1)
-	job = strings.Replace(job, VarPvcName, pvcName, -1)
+	job = strings.Replace(job, VarProvisionImages, envManager.GetProvisionImages(), -1)
+	job = strings.Replace(job, VarPvcName, getPersistentVolumeClaimName(envId), -1)
 	_, err = saveJob(job, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving job: ", err)

@@ -20,17 +20,11 @@ const DefaultBranch = "master"
 
 var minienvVersion = "latest"
 var minienvImage = "minienv/minienv:latest"
+var minienvConfigPath = ""
 var sessionStore SessionStore
 var environments []*Environment
-var envPvHostPath bool
-var envPvTemplate string
-var envPvcTemplate string
-var envPvcStorageClass string
-var envDeploymentTemplate string
-var envServiceTemplate string
-var provisionerJobTemplate string
-var provisionVolumeSize string
-var provisionImages string
+
+
 var kubeServiceToken string
 var kubeServiceBaseUrl string
 var kubeNamespace string
@@ -48,7 +42,7 @@ func loadFile(fp string) string {
 	return string(b)
 }
 
-func initEnvironments(envCount int) {
+func initEnvironments(envManager KubeEnvManager, envCount int) {
 	log.Printf("Provisioning %d environments...\n", envCount)
 	for i := 0; i < envCount; i++ {
 		environment := &Environment{Id: strconv.Itoa(i + 1)}
@@ -84,7 +78,7 @@ func initEnvironments(envCount int) {
 		if ! running {
 			log.Printf("Provisioning environment %s...\n", environment.Id)
 			environment.Status = StatusProvisioning
-			deployProvisioner(minienvVersion, environment.Id, nodeNameOverride, storageDriver, envPvTemplate, envPvcTemplate, provisionerJobTemplate, provisionVolumeSize, provisionImages, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+			deployProvisioner(envManager, minienvVersion, environment.Id, nodeNameOverride, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 		}
 	}
 	// scale down, if necessary
@@ -112,7 +106,7 @@ func initEnvironments(envCount int) {
 			}
 			deleteProvisioner(envId, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			deletePersistentVolumeClaim(pvcName, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
-			if envPvHostPath {
+			if envManager.UseHostPathPersistentVolumes() {
 				pvName := getPersistentVolumeName(envId)
 				deletePersistentVolume(pvName, kubeServiceToken, kubeServiceBaseUrl)
 			}
@@ -121,18 +115,18 @@ func initEnvironments(envCount int) {
 			break
 		}
 	}
-	checkEnvironments()
+	checkEnvironments(envManager)
 }
 
-func startEnvironmentCheckTimer() {
+func startEnvironmentCheckTimer(envManager KubeEnvManager) {
 	timer := time.NewTimer(time.Second * time.Duration(CheckEnvTimerSeconds))
 	go func() {
 		<-timer.C
-		checkEnvironments()
+		checkEnvironments(envManager)
 	}()
 }
 
-func checkEnvironments() {
+func checkEnvironments(envManager KubeEnvManager) {
 	for i := 0; i < len(environments); i++ {
 		environment := environments[i]
 		log.Printf("Checking environment %s; current status=%d\n", environment.Id, environment.Status)
@@ -161,7 +155,7 @@ func checkEnvironments() {
 				// re-provision
 				log.Printf("Re-provisioning environment %s...\n", environment.Id)
 				environment.Status = StatusProvisioning
-				deployProvisioner(minienvVersion, environment.Id, nodeNameOverride, storageDriver, envPvTemplate, envPvcTemplate, provisionerJobTemplate, provisionVolumeSize, provisionImages, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+				deployProvisioner(envManager, minienvVersion, environment.Id, nodeNameOverride, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			} else {
 				log.Printf("Checking if environment %s is still deployed...\n", environment.Id)
 				deployed, err := isEnvDeployed(environment.Id, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
@@ -187,5 +181,5 @@ func checkEnvironments() {
 			}
 		}
 	}
-	startEnvironmentCheckTimer()
+	startEnvironmentCheckTimer(envManager)
 }

@@ -76,7 +76,7 @@ type EnvUpRequest struct {
 }
 
 type EnvUpResponse struct {
-	LogUrl string `json:"logUrl"`
-	EditorUrl string `json:"editorUrl"`
-	Tabs []Tab `json:"tabs"`
+	LogUrl string        `json:"logUrl"`
+	EditorUrl string     `json:"editorUrl"`
+	Tabs []DeploymentTab `json:"tabs"`
 }
