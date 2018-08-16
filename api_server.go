@@ -217,11 +217,6 @@ func (apiServer *ApiServer) Up(envUpRequest *EnvUpRequest, session *Session) (*E
 				Username: envUpRequest.Username,
 				Password: envUpRequest.Password,
 			}
-			log.Println("ABOUT TO DEPLOY")
-			log.Printf("id = %s", environment.Id)
-			log.Printf("claimtoken = %s", environment.ClaimToken)
-			log.Printf("%s", apiServer.EnvManager)
-			log.Printf("%s", apiServer.EnvManager.GetProvisionerJobYamlTemplate())
 			details, err := deployEnv(apiServer.EnvManager, minienvVersion, minienvImage, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, repo, minienvConfigPath, envUpRequest.EnvVars, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			if err != nil || details == nil {
 				log.Print("Error creating deployment: ", err)
