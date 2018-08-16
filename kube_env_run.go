@@ -67,7 +67,6 @@ type DeploymentDetails struct {
 	AppPort string
 	Tabs *[]*DeploymentTab
 	Props *map[string]interface{}
-	//EnvConfig *EnvConfig `json:"-"`
 }
 
 func getEnvDeployment(envId string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {
