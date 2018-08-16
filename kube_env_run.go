@@ -24,7 +24,6 @@ var VarGitBranch = "$gitBranch"
 var VarProxyPort = "$proxyPort"
 var VarLogPort = "$logPort"
 var VarEditorPort = "$editorPort"
-var VarEditorSrcDir = "$editorSrcDir"
 var VarPvName = "$pvName"
 var VarPvSize = "$pvSize"
 var VarPvPath = "$pvPath"
@@ -48,7 +47,6 @@ type DeploymentTab struct {
 	Hide bool   `json:"hide"`
 	Name string `json:"name"`
 	Path string `json:"path"`
-	//AppTab *EnvConfigMetaAppTab `json:"-"`
 }
 
 type DeploymentRepo struct {
