@@ -20,7 +20,6 @@ const DefaultBranch = "master"
 
 var minienvVersion = "latest"
 var sessionStore SessionStore
-var environments []*Environment
 
 var kubeServiceToken string
 var kubeServiceBaseUrl string
@@ -39,11 +38,11 @@ func loadFile(fp string) string {
 	return string(b)
 }
 
-func initEnvironments(envManager KubeEnvManager, envCount int) {
+func initEnvironments(apiServer *ApiServer, envCount int) {
 	log.Printf("Provisioning %d environments...\n", envCount)
 	for i := 0; i < envCount; i++ {
 		environment := &Environment{Id: strconv.Itoa(i + 1)}
-		environments = append(environments, environment)
+		apiServer.Environments = append(apiServer.Environments, environment)
 		// check if environment running
 		getDeploymentResp, err := getEnvDeployment(environment.Id, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 		running := false
@@ -59,7 +58,7 @@ func initEnvironments(envManager KubeEnvManager, envCount int) {
 				getDeploymentResp.Spec.Template.Metadata.Annotations.EnvDetails != "" {
 				log.Printf("Loading environment %s from deployment metadata.\n", environment.Id)
 				running = true
-				details  := envManager.DeserializeDeploymentDetails(getDeploymentResp.Spec.Template.Metadata.Annotations.EnvDetails)
+				details  := apiServer.EnvManager.DeserializeDeploymentDetails(getDeploymentResp.Spec.Template.Metadata.Annotations.EnvDetails)
 				environment.Status = StatusRunning
 				environment.ClaimToken = getDeploymentResp.Spec.Template.Metadata.Annotations.ClaimToken
 				environment.LastActivity = time.Now().Unix()
@@ -75,7 +74,7 @@ func initEnvironments(envManager KubeEnvManager, envCount int) {
 		if ! running {
 			log.Printf("Provisioning environment %s...\n", environment.Id)
 			environment.Status = StatusProvisioning
-			deployProvisioner(envManager, minienvVersion, environment.Id, nodeNameOverride, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+			deployProvisioner(apiServer.EnvManager, minienvVersion, environment.Id, nodeNameOverride, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 		}
 	}
 	// scale down, if necessary
@@ -103,7 +102,7 @@ func initEnvironments(envManager KubeEnvManager, envCount int) {
 			}
 			deleteProvisioner(envId, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			deletePersistentVolumeClaim(pvcName, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
-			if envManager.UseHostPathPersistentVolumes() {
+			if apiServer.EnvManager.UseHostPathPersistentVolumes() {
 				pvName := getPersistentVolumeName(envId)
 				deletePersistentVolume(pvName, kubeServiceToken, kubeServiceBaseUrl)
 			}
@@ -112,20 +111,20 @@ func initEnvironments(envManager KubeEnvManager, envCount int) {
 			break
 		}
 	}
-	checkEnvironments(envManager)
+	checkEnvironments(apiServer)
 }
 
-func startEnvironmentCheckTimer(envManager KubeEnvManager) {
+func startEnvironmentCheckTimer(apiServer *ApiServer) {
 	timer := time.NewTimer(time.Second * time.Duration(CheckEnvTimerSeconds))
 	go func() {
 		<-timer.C
-		checkEnvironments(envManager)
+		checkEnvironments(apiServer)
 	}()
 }
 
-func checkEnvironments(envManager KubeEnvManager) {
-	for i := 0; i < len(environments); i++ {
-		environment := environments[i]
+func checkEnvironments(apiServer *ApiServer) {
+	for i := 0; i < len(apiServer.Environments); i++ {
+		environment := apiServer.Environments[i]
 		log.Printf("Checking environment %s; current status=%d\n", environment.Id, environment.Status)
 		if environment.Status == StatusProvisioning {
 			running, err := isProvisionerRunning(environment.Id, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
@@ -152,7 +151,7 @@ func checkEnvironments(envManager KubeEnvManager) {
 				// re-provision
 				log.Printf("Re-provisioning environment %s...\n", environment.Id)
 				environment.Status = StatusProvisioning
-				deployProvisioner(envManager, minienvVersion, environment.Id, nodeNameOverride, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+				deployProvisioner(apiServer.EnvManager, minienvVersion, environment.Id, nodeNameOverride, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			} else {
 				log.Printf("Checking if environment %s is still deployed...\n", environment.Id)
 				deployed, err := isEnvDeployed(environment.Id, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
@@ -178,5 +177,5 @@ func checkEnvironments(envManager KubeEnvManager) {
 			}
 		}
 	}
-	startEnvironmentCheckTimer(envManager)
+	startEnvironmentCheckTimer(apiServer)
 }

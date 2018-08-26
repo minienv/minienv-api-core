@@ -66,7 +66,8 @@ type DeploymentDetails struct {
 	EditorUrl    string
 	AppProxyPort string
 	Tabs         *[]*DeploymentTab
-	Props        *map[string]interface{}
+	StringProps  *map[string]string
+	ObjectProps  *map[string]interface{}
 }
 
 func getEnvDeployment(envId string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {
@@ -108,11 +109,11 @@ func getDownloadUrl(path string, gitRepo string, gitBranch string, gitUsername s
 	return url
 }
 
-func deployEnv(envManager KubeEnvManager, minienvVersion string, envId string, claimToken string, nodeNameOverride string, nodeHostProtocol string, repo *DeploymentRepo, envVars map[string]string, storageDriver string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*DeploymentDetails, error) {
+func deployEnv(session *Session, envManager KubeEnvManager, minienvVersion string, envId string, claimToken string, nodeNameOverride string, nodeHostProtocol string, repo *DeploymentRepo, envVars map[string]string, storageDriver string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*DeploymentDetails, error) {
 	// delete env, if it exists
 	deleteEnv(envId, claimToken, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	// get deployment details
-	details, _ := envManager.GetDeploymentDetails(envId, claimToken, repo)
+	details, _ := envManager.GetDeploymentDetails(session, envId, claimToken, repo)
 	// create persistent volume if using host paths
 	if envManager.UseHostPathPersistentVolumes() {
 		pvResponse, err := getPersistentVolume(getPersistentVolumeName(envId), kubeServiceToken, kubeServiceBaseUrl)
@@ -140,14 +141,14 @@ func deployEnv(envManager KubeEnvManager, minienvVersion string, envId string, c
 		}
 	}
 	// create the service first - we need the ports to serialize the details with the deployment
-	service := envManager.GetServiceYaml(envId, claimToken, details)
+	service := envManager.GetServiceYaml(session, envId, claimToken, details)
 	_, err = saveService(service, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving service: ", err)
 		return nil, err
 	}
 	// save deployment
-	deployment := envManager.GetDeploymentYaml(envId, claimToken, minienvVersion, nodeNameOverride, nodeHostProtocol, storageDriver, repo, details, envVars)
+	deployment := envManager.GetDeploymentYaml(session, envId, claimToken, minienvVersion, nodeNameOverride, nodeHostProtocol, storageDriver, repo, details, envVars)
 	_, err = saveDeployment(deployment, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving deployment: ", err)

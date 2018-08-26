@@ -20,10 +20,10 @@ type KubeEnvManager interface {
 	GetPersistentVolumeClaimYamlTemplate() (string)
 	GetServiceYamlTemplate() (string)
 	GetDeploymentYamlTemplate() (string)
-	GetDeploymentTabsFromDockerCompose(repo *DeploymentRepo) (*[]*DeploymentTab, error)
-	GetDeploymentDetails(envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error)
-	GetDeploymentYaml(envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string)
-	GetServiceYaml(envId string, claimToken string, details *DeploymentDetails) (string)
+	GetDeploymentTabsFromDockerCompose(session *Session, repo *DeploymentRepo) (*[]*DeploymentTab, error)
+	GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error)
+	GetDeploymentYaml(session *Session, envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string)
+	GetServiceYaml(session *Session, envId string, claimToken string, details *DeploymentDetails) (string)
 	GetPersistentVolumeYaml(envId string) (string)
 	GetPersistentVolumeClaimYaml(envId string) (string)
 	SerializeDeploymentDetails(details *DeploymentDetails) (string)
@@ -78,7 +78,7 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYamlTemplate() (string) {
 	return envManager.DeploymentYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(repo *DeploymentRepo) (*[]*DeploymentTab, error) {
+func (envManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(_ *Session, repo *DeploymentRepo) (*[]*DeploymentTab, error) {
 	var tabs []*DeploymentTab
 	dockerComposeUrl := getDownloadUrl("docker-compose.yml", repo.Repo, repo.Branch, repo.Username, repo.Password)
 	log.Printf("Downloading docker-compose file from '%s'...\n", dockerComposeUrl)
@@ -114,8 +114,8 @@ func (envManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(repo *D
 	return &tabs, nil
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentDetails(envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error) {
-	tabs, err := envManager.GetDeploymentTabsFromDockerCompose(repo)
+func (envManager *BaseKubeEnvManager) GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error) {
+	tabs, err := envManager.GetDeploymentTabsFromDockerCompose(session, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (envManager *BaseKubeEnvManager) GetDeploymentDetails(envId string, claimTo
 	return details, nil
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string) {
+func (envManager *BaseKubeEnvManager) GetDeploymentYaml(session *Session, envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string) {
 	envVarsYaml := ""
 	if envVars != nil {
 		first := true
@@ -171,7 +171,7 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYaml(envId string, claimToken
 	return deployment
 }
 
-func (envManager *BaseKubeEnvManager) GetServiceYaml(envId string, claimToken string, details *DeploymentDetails) (string) {
+func (envManager *BaseKubeEnvManager) GetServiceYaml(_ *Session, envId string, claimToken string, details *DeploymentDetails) (string) {
 	service := envManager.GetServiceYamlTemplate()
 	service = strings.Replace(service, VarServiceName, getEnvServiceName(envId, claimToken), -1)
 	service = strings.Replace(service, VarAppLabel, getEnvAppLabel(envId, claimToken), -1)

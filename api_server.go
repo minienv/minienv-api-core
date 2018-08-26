@@ -14,6 +14,7 @@ import (
 
 type ApiServer struct {
 	EnvManager KubeEnvManager
+	Environments []*Environment
 }
 
 func (apiServer *ApiServer) GetOrCreateSession(id string) *Session {
@@ -55,7 +56,7 @@ func (apiServer *ApiServer) AddCorsAndCacheHeadersThenServe(handler http.Handler
 func (apiServer *ApiServer) Claim(request *ClaimRequest) (*ClaimResponse){
 	var claimResponse = ClaimResponse{}
 	var environment *Environment
-	for _, element := range environments {
+	for _, element := range apiServer.Environments {
 		if element.Status == StatusIdle {
 			environment = element
 			break
@@ -89,7 +90,7 @@ func (apiServer *ApiServer) Whitelist() (*WhitelistResponse) {
 func (apiServer *ApiServer) Ping(pingRequest *PingRequest, session *Session) (*PingResponse, error) {
 	var pingResponse = PingResponse{}
 	var environment *Environment
-	for _, element := range environments {
+	for _, element := range apiServer.Environments {
 		if element.ClaimToken == pingRequest.ClaimToken {
 			environment = element
 			break
@@ -152,7 +153,7 @@ func (apiServer *ApiServer) Up(envUpRequest *EnvUpRequest, session *Session) (*E
 		envUpRequest.Branch = DefaultBranch
 	}
 	var environment *Environment
-	for _, element := range environments {
+	for _, element := range apiServer.Environments {
 		if element.ClaimToken == envUpRequest.ClaimToken {
 			environment = element
 			break
@@ -199,7 +200,7 @@ func (apiServer *ApiServer) Up(envUpRequest *EnvUpRequest, session *Session) (*E
 				Username: envUpRequest.Username,
 				Password: envUpRequest.Password,
 			}
-			details, err := deployEnv(apiServer.EnvManager, minienvVersion, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, repo, envUpRequest.EnvVars, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+			details, err := deployEnv(session, apiServer.EnvManager, minienvVersion, environment.Id, environment.ClaimToken, nodeNameOverride, nodeHostProtocol, repo, envUpRequest.EnvVars, storageDriver, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 			if err != nil || details == nil {
 				log.Print("Error creating deployment: ", err)
 				return nil, errors.New("error creating deployment")
@@ -349,5 +350,5 @@ func (apiServer *ApiServer) Init() {
 			}
 		}
 	}
-	initEnvironments(apiServer.EnvManager, envCount)
+	initEnvironments(apiServer, envCount)
 }
