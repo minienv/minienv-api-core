@@ -23,8 +23,8 @@ func (apiServer *ApiServer) GetOrCreateSession(id string) *Session {
 		session, _ = sessionStore.GetSession(id)
 	}
 	if session == nil {
-		uuid, _ := uuid.NewRandom()
-		id = strings.Replace(uuid.String(), "-", "", -1)
+		random, _ := uuid.NewRandom()
+		id = strings.Replace(random.String(), "-", "", -1)
 		session = &Session{Id: id}
 		sessionStore.SetSession(id, session)
 	}
@@ -120,6 +120,7 @@ func (apiServer *ApiServer) Ping(pingRequest *PingRequest, session *Session) (*P
 				environment.Repo = ""
 				environment.Branch = ""
 				environment.Details = nil
+				environment.Props = nil
 			}
 		}
 	}
@@ -185,10 +186,11 @@ func (apiServer *ApiServer) Up(envUpRequest *EnvUpRequest, session *Session) (*E
 			return nil, errors.New("unable to find deployment")
 		} else if exists {
 			log.Printf("Env deployed for claim %s.\n", environment.Id)
-			if environment.Status == StatusRunning && strings.EqualFold(envUpRequest.Repo, environment.Repo) && strings.EqualFold(envUpRequest.Branch, environment.Branch) {
-				log.Println("Returning existing environment details...")
-				envUpResponse = getEnvUpResponse(environment.Details, session)
-			}
+			// mw:commented out to allow re-deployment
+			//if environment.Status == StatusRunning && strings.EqualFold(envUpRequest.Repo, environment.Repo) && strings.EqualFold(envUpRequest.Branch, environment.Branch) {
+			//	log.Println("Returning existing environment details...")
+			//	envUpResponse = getEnvUpResponse(environment.Details, session)
+			//}
 		}
 		if envUpResponse == nil {
 			log.Printf("Creating new deployment...")

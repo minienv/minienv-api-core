@@ -10,6 +10,7 @@ type Environment struct {
 	Branch string
 	Details *DeploymentDetails
 	ExpirationSeconds int64
+	Props  *map[string]interface{}
 }
 
 type WhitelistRepo struct {
@@ -19,8 +20,6 @@ type WhitelistRepo struct {
 }
 
 type ClaimRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
 }
 
 type ClaimResponse struct {

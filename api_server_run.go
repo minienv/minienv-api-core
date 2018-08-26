@@ -147,6 +147,7 @@ func checkEnvironments(apiServer *ApiServer) {
 				environment.Repo = ""
 				environment.Branch = ""
 				environment.Details = nil
+				environment.Props = nil
 				deleteEnv(environment.Id, claimToken, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 				// re-provision
 				log.Printf("Re-provisioning environment %s...\n", environment.Id)
@@ -163,6 +164,7 @@ func checkEnvironments(apiServer *ApiServer) {
 					environment.Repo = ""
 					environment.Branch = ""
 					environment.Details = nil
+					environment.Props = nil
 				}
 			}
 		}  else if environment.Status == StatusClaimed {
@@ -174,6 +176,7 @@ func checkEnvironments(apiServer *ApiServer) {
 				environment.Repo = ""
 				environment.Branch = ""
 				environment.Details = nil
+				environment.Props = nil
 			}
 		}
 	}
