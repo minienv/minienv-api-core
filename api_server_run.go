@@ -13,9 +13,9 @@ const StatusProvisioning = 1
 const StatusClaimed = 2
 const StatusRunning = 3
 
-const CheckEnvTimerSeconds = 15
+const CheckEnvTimerSeconds = 5
 const ExpireClaimNoActivitySeconds int64 = 30
-const DefaultEnvExpirationSeconds int64 = 60
+const DefaultEnvExpirationSeconds int64 = 24 * 60 * 60
 const DefaultBranch = "master"
 
 var minienvVersion = "latest"
