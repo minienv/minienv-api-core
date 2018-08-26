@@ -57,16 +57,16 @@ type DeploymentRepo struct {
 }
 
 type DeploymentDetails struct {
-	NodeHostName string
-	EnvId        string
-	ClaimToken   string
-	LogPort      string
-	LogUrl       string
-	EditorPort   string
-	EditorUrl    string
-	AppProxyPort string
-	Tabs         *[]*DeploymentTab
-	Props  *map[string]interface{}
+	NodeHostName string `json:"nodeHostName"`
+	EnvId        string `json:"envId"`
+	ClaimToken   string `json:"claimToken"`
+	LogPort      string `json:"logPort"`
+	LogUrl       string `json:"logUrl"`
+	EditorPort   string `json:"editorPort"`
+	EditorUrl    string `json:"editorUrl"`
+	AppProxyPort string `json:"appProxyPort"`
+	Tabs         *[]*DeploymentTab `json:"tabs"`
+	Props  *map[string]interface{} `json:"-"`
 }
 
 func getEnvDeployment(envId string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {
