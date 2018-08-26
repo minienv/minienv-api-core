@@ -120,7 +120,7 @@ func deployEnv(session *Session, envManager KubeEnvManager, minienvVersion strin
 			log.Println("Error getting persistent volume: ", err)
 			return nil, err
 		} else if pvResponse == nil {
-			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envId), kubeServiceToken, kubeServiceBaseUrl)
+			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envManager.GetPersistentVolumeYamlTemplate(), envId), kubeServiceToken, kubeServiceBaseUrl)
 			if err != nil {
 				log.Println("Error saving persistent volume: ", err)
 				return nil, err
@@ -133,21 +133,21 @@ func deployEnv(session *Session, envManager KubeEnvManager, minienvVersion strin
 		log.Println("Error getting persistent volume claim: ", err)
 		return nil, err
 	} else if pvcResponse == nil {
-		_, err = savePersistentVolumeClaim(envManager.GetPersistentVolumeClaimYaml(envId), kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+		_, err = savePersistentVolumeClaim(envManager.GetPersistentVolumeClaimYaml(envManager.GetPersistentVolumeClaimYamlTemplate(), envId, envManager.GetProvisionVolumeSize(), envManager.GetPersistentVolumeStorageClass()), kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 		if err != nil {
 			log.Println("Error saving persistent volume claim: ", err)
 			return nil, err
 		}
 	}
 	// create the service first - we need the ports to serialize the details with the deployment
-	service := envManager.GetServiceYaml(session, envId, claimToken, details)
+	service := envManager.GetServiceYaml(session, envManager.GetServiceYamlTemplate(), details)
 	_, err = saveService(service, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving service: ", err)
 		return nil, err
 	}
 	// save deployment
-	deployment := envManager.GetDeploymentYaml(session, envId, claimToken, minienvVersion, nodeNameOverride, nodeHostProtocol, storageDriver, repo, details, envVars)
+	deployment := envManager.GetDeploymentYaml(session, envManager.GetDeploymentYamlTemplate(), details, envManager.SerializeDeploymentDetails(details), minienvVersion, nodeNameOverride, nodeHostProtocol, storageDriver, repo, envVars)
 	_, err = saveDeployment(deployment, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
 		log.Println("Error saving deployment: ", err)

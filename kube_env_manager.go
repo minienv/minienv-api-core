@@ -22,10 +22,10 @@ type KubeEnvManager interface {
 	GetDeploymentYamlTemplate() (string)
 	GetDeploymentTabsFromDockerCompose(session *Session, repo *DeploymentRepo) (*[]*DeploymentTab, error)
 	GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error)
-	GetDeploymentYaml(session *Session, envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string)
-	GetServiceYaml(session *Session, envId string, claimToken string, details *DeploymentDetails) (string)
-	GetPersistentVolumeYaml(envId string) (string)
-	GetPersistentVolumeClaimYaml(envId string) (string)
+	GetDeploymentYaml(session *Session, template string, details *DeploymentDetails, detailsString string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, envVars map[string]string) (string)
+	GetServiceYaml(session *Session, template string, details *DeploymentDetails) (string)
+	GetPersistentVolumeYaml(template string, envId string) (string)
+	GetPersistentVolumeClaimYaml(template string, envId string, storageSize string, storageClass string) (string)
 	SerializeDeploymentDetails(details *DeploymentDetails) (string)
 	DeserializeDeploymentDetails(detailsStr string) (*DeploymentDetails)
 }
@@ -42,43 +42,43 @@ type BaseKubeEnvManager struct {
 	DeploymentYamlTemplate string
 }
 
-func (envManager *BaseKubeEnvManager) GetProvisionerJobYamlTemplate() (string) {
-	return envManager.ProvisionerJobYamlTemplate
+func (baseEnvManager *BaseKubeEnvManager) GetProvisionerJobYamlTemplate() (string) {
+	return baseEnvManager.ProvisionerJobYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetProvisionVolumeSize() string {
-	return envManager.ProvisionVolumeSize
+func (baseEnvManager *BaseKubeEnvManager) GetProvisionVolumeSize() string {
+	return baseEnvManager.ProvisionVolumeSize
 }
 
-func (envManager *BaseKubeEnvManager) GetProvisionImages() (string) {
-	return envManager.ProvisionImages
+func (baseEnvManager *BaseKubeEnvManager) GetProvisionImages() (string) {
+	return baseEnvManager.ProvisionImages
 }
 
-func (envManager *BaseKubeEnvManager) GetPersistentVolumeStorageClass() (string) {
-	return envManager.PersistentVolumeStorageClass
+func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeStorageClass() (string) {
+	return baseEnvManager.PersistentVolumeStorageClass
 }
 
-func (envManager *BaseKubeEnvManager) UseHostPathPersistentVolumes() (bool) {
-	return envManager.PersistentVolumeHostPath
+func (baseEnvManager *BaseKubeEnvManager) UseHostPathPersistentVolumes() (bool) {
+	return baseEnvManager.PersistentVolumeHostPath
 }
 
-func (envManager *BaseKubeEnvManager) GetPersistentVolumeYamlTemplate() (string) {
-	return envManager.PersistentVolumeYamlTemplate
+func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeYamlTemplate() (string) {
+	return baseEnvManager.PersistentVolumeYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetPersistentVolumeClaimYamlTemplate() (string) {
-	return envManager.PersistentVolumeClaimYamlTemplate
+func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeClaimYamlTemplate() (string) {
+	return baseEnvManager.PersistentVolumeClaimYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetServiceYamlTemplate() (string) {
-	return envManager.ServiceYamlTemplate
+func (baseEnvManager *BaseKubeEnvManager) GetServiceYamlTemplate() (string) {
+	return baseEnvManager.ServiceYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentYamlTemplate() (string) {
-	return envManager.DeploymentYamlTemplate
+func (baseEnvManager *BaseKubeEnvManager) GetDeploymentYamlTemplate() (string) {
+	return baseEnvManager.DeploymentYamlTemplate
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(_ *Session, repo *DeploymentRepo) (*[]*DeploymentTab, error) {
+func (baseEnvManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(_ *Session, repo *DeploymentRepo) (*[]*DeploymentTab, error) {
 	var tabs []*DeploymentTab
 	dockerComposeUrl := getDownloadUrl("docker-compose.yml", repo.Repo, repo.Branch, repo.Username, repo.Password)
 	log.Printf("Downloading docker-compose file from '%s'...\n", dockerComposeUrl)
@@ -114,8 +114,8 @@ func (envManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(_ *Sess
 	return &tabs, nil
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error) {
-	tabs, err := envManager.GetDeploymentTabsFromDockerCompose(session, repo)
+func (baseEnvManager *BaseKubeEnvManager) GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error) {
+	tabs, err := baseEnvManager.GetDeploymentTabsFromDockerCompose(session, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func (envManager *BaseKubeEnvManager) GetDeploymentDetails(session *Session, env
 	return details, nil
 }
 
-func (envManager *BaseKubeEnvManager) GetDeploymentYaml(session *Session, envId string, claimToken string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, details *DeploymentDetails, envVars map[string]string) (string) {
+func (baseEnvManager *BaseKubeEnvManager) GetDeploymentYaml(session *Session, template string, details *DeploymentDetails, detailsString string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, envVars map[string]string) (string) {
 	envVarsYaml := ""
 	if envVars != nil {
 		first := true
@@ -150,7 +150,7 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYaml(session *Session, envId 
 			envVarsYaml += "\n            value: \"" + v + "\""
 		}
 	}
-	deployment := envManager.GetDeploymentYamlTemplate()
+	deployment := template
 	deployment = strings.Replace(deployment, VarMinienvVersion, minienvVersion, -1)
 	deployment = strings.Replace(deployment, VarMinienvNodeNameOverride, nodeNameOverride, -1)
 	deployment = strings.Replace(deployment, VarMinienvNodeHostProtocol, nodeHostProtocol, -1)
@@ -162,41 +162,41 @@ func (envManager *BaseKubeEnvManager) GetDeploymentYaml(session *Session, envId 
 	deployment = strings.Replace(deployment, VarAppProxyPort, details.AppProxyPort, -1)
 	deployment = strings.Replace(deployment, VarLogPort, details.LogPort, -1)
 	deployment = strings.Replace(deployment, VarEditorPort, details.EditorPort, -1)
-	deployment = strings.Replace(deployment, VarDeploymentName, getEnvDeploymentName(envId), -1)
-	deployment = strings.Replace(deployment, VarAppLabel, getEnvAppLabel(envId, claimToken), -1)
-	deployment = strings.Replace(deployment, VarClaimToken, claimToken, -1)
-	deployment = strings.Replace(deployment, VarEnvDetails, envManager.SerializeDeploymentDetails(details), -1)
+	deployment = strings.Replace(deployment, VarDeploymentName, getEnvDeploymentName(details.EnvId), -1)
+	deployment = strings.Replace(deployment, VarAppLabel, getEnvAppLabel(details.EnvId, details.ClaimToken), -1)
+	deployment = strings.Replace(deployment, VarClaimToken, details.ClaimToken, -1)
+	deployment = strings.Replace(deployment, VarEnvDetails, detailsString, -1)
 	deployment = strings.Replace(deployment, VarEnvVars, envVarsYaml, -1)
-	deployment = strings.Replace(deployment, VarPvcName, getPersistentVolumeClaimName(envId), -1)
+	deployment = strings.Replace(deployment, VarPvcName, getPersistentVolumeClaimName(details.EnvId), -1)
 	return deployment
 }
 
-func (envManager *BaseKubeEnvManager) GetServiceYaml(_ *Session, envId string, claimToken string, details *DeploymentDetails) (string) {
-	service := envManager.GetServiceYamlTemplate()
-	service = strings.Replace(service, VarServiceName, getEnvServiceName(envId, claimToken), -1)
-	service = strings.Replace(service, VarAppLabel, getEnvAppLabel(envId, claimToken), -1)
+func (baseEnvManager *BaseKubeEnvManager) GetServiceYaml(_ *Session, template string, details *DeploymentDetails) (string) {
+	service := template
+	service = strings.Replace(service, VarServiceName, getEnvServiceName(details.EnvId, details.ClaimToken), -1)
+	service = strings.Replace(service, VarAppLabel, getEnvAppLabel(details.EnvId, details.ClaimToken), -1)
 	service = strings.Replace(service, VarLogPort, details.LogPort, -1)
 	service = strings.Replace(service, VarEditorPort, details.EditorPort, -1)
 	service = strings.Replace(service, VarAppProxyPort, details.AppProxyPort, -1)
 	return service
 }
 
-func (envManager *BaseKubeEnvManager) GetPersistentVolumeYaml(envId string) (string) {
-	pv := envManager.GetPersistentVolumeYamlTemplate()
+func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeYaml(template string, envId string) (string) {
+	pv := template
 	pv = strings.Replace(pv, VarPvName, getPersistentVolumeName(envId), -1)
 	pv = strings.Replace(pv, VarPvPath, getPersistentVolumePath(envId), -1)
 	return pv
 }
 
-func (envManager *BaseKubeEnvManager) GetPersistentVolumeClaimYaml(envId string) (string) {
-	pvc := envManager.GetPersistentVolumeClaimYamlTemplate()
-	pvc = strings.Replace(pvc, VarPvSize, envManager.GetPersistentVolumeStorageClass(), -1)
+func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeClaimYaml(template string, envId string, storageSize string, storageClass string) (string) {
+	pvc := template
+	pvc = strings.Replace(pvc, VarPvSize, storageSize, -1)
 	pvc = strings.Replace(pvc, VarPvcName, getPersistentVolumeClaimName(envId), -1)
-	pvc = strings.Replace(pvc, VarPvcStorageClass, envManager.GetPersistentVolumeStorageClass(), -1)
+	pvc = strings.Replace(pvc, VarPvcStorageClass, storageClass, -1)
 	return pvc
 }
 
-func (envManager *BaseKubeEnvManager) SerializeDeploymentDetails(details *DeploymentDetails) (string) {
+func (baseEnvManager *BaseKubeEnvManager) SerializeDeploymentDetails(details *DeploymentDetails) (string) {
 	b, err := json.Marshal(details)
 	if err != nil {
 		return ""
@@ -205,7 +205,7 @@ func (envManager *BaseKubeEnvManager) SerializeDeploymentDetails(details *Deploy
 	return s
 }
 
-func (envManager *BaseKubeEnvManager) DeserializeDeploymentDetails(detailsStr string) (*DeploymentDetails) {
+func (baseEnvManager *BaseKubeEnvManager) DeserializeDeploymentDetails(detailsStr string) (*DeploymentDetails) {
 	detailsStr = strings.Replace(detailsStr, "\\\"", "\"", -1)
 	var deploymentDetails DeploymentDetails
 	err := json.Unmarshal([]byte(detailsStr), &deploymentDetails)

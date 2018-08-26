@@ -73,7 +73,7 @@ func deployProvisioner(envManager KubeEnvManager, minienvVersion string, envId s
 			log.Println("Error getting persistent volume: ", err)
 			return err
 		} else if pvResponse == nil {
-			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envId), kubeServiceToken, kubeServiceBaseUrl)
+			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envManager.GetPersistentVolumeYamlTemplate(), envId), kubeServiceToken, kubeServiceBaseUrl)
 			if err != nil {
 				log.Println("Error saving persistent volume: ", err)
 				return err
@@ -86,7 +86,7 @@ func deployProvisioner(envManager KubeEnvManager, minienvVersion string, envId s
 		log.Println("Error getting persistent volume claim: ", err)
 		return err
 	} else if pvcResponse == nil {
-		_, err = savePersistentVolumeClaim(envManager.GetPersistentVolumeClaimYaml(envId), kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
+		_, err = savePersistentVolumeClaim(envManager.GetPersistentVolumeClaimYaml(envManager.GetPersistentVolumeClaimYamlTemplate(), envId, envManager.GetProvisionVolumeSize(), envManager.GetPersistentVolumeStorageClass()), kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 		if err != nil {
 			log.Println("Error saving persistent volume claim: ", err)
 			return err
