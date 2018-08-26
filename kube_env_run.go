@@ -66,8 +66,7 @@ type DeploymentDetails struct {
 	EditorUrl    string
 	AppProxyPort string
 	Tabs         *[]*DeploymentTab
-	StringProps  *map[string]string
-	ObjectProps  *map[string]interface{}
+	Props  *map[string]interface{}
 }
 
 func getEnvDeployment(envId string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {
