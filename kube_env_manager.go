@@ -127,7 +127,7 @@ func (baseEnvManager *BaseKubeEnvManager) GetAvailableDeploymentPort(port int, t
 				}
 			}
 			if ! used && tabs != nil {
-				for _, tab := range tabs {
+				for _, tab := range *tabs {
 					if tab.Port == port {
 						port = port + 1
 						used = true
