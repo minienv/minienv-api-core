@@ -117,8 +117,8 @@ func (baseEnvManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(_ *
 
 func (baseEnvManager *BaseKubeEnvManager) GetAvailableDeploymentPort(port int, tabs *[]*DeploymentTab, otherPorts []int)  int {
 	for true {
+		used := false
 		if otherPorts != nil {
-			used := false
 			for _, otherPort := range otherPorts {
 				if otherPort == port {
 					port = port + 1
@@ -126,20 +126,20 @@ func (baseEnvManager *BaseKubeEnvManager) GetAvailableDeploymentPort(port int, t
 					break
 				}
 			}
-			if ! used && tabs != nil {
-				for _, tab := range *tabs {
-					if tab.Port == port {
-						port = port + 1
-						used = true
-						break
-					}
+		}
+		if ! used && tabs != nil {
+			for _, tab := range *tabs {
+				if tab.Port == port {
+					port = port + 1
+					used = true
+					break
 				}
 			}
-			if used {
-				continue
-			} else {
-				return port
-			}
+		}
+		if used {
+			continue
+		} else {
+			return port
 		}
 	}
 	return port
