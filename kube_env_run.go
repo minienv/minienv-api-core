@@ -36,9 +36,9 @@ var VarClaimToken = "$claimToken"
 var VarEnvDetails = "$envDetails"
 var VarEnvVars = "$envVars"
 
-var DefaultLogPort = "8001"
-var DefaultEditorPort = "8002"
-var DefaultAppProxyPort = "8003"
+var DefaultLogPort = 8001
+var DefaultEditorPort = 8002
+var DefaultAppProxyPort = 8003
 
 
 type DeploymentTab struct {
@@ -156,8 +156,6 @@ func deployEnv(session *Session, envManager KubeEnvManager, minienvVersion strin
 	// return
 	return details, nil
 }
-
-
 
 func populateTabs(v interface{}, tabs *[]*DeploymentTab, parent string) {
 	typ := reflect.TypeOf(v).Kind()

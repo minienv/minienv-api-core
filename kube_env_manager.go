@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"fmt"
 	"encoding/json"
+	"strconv"
 )
 
 type KubeEnvManager interface {
@@ -114,16 +115,50 @@ func (baseEnvManager *BaseKubeEnvManager) GetDeploymentTabsFromDockerCompose(_ *
 	return &tabs, nil
 }
 
+func (baseEnvManager *BaseKubeEnvManager) GetAvailableDeploymentPort(port int, tabs *[]*DeploymentTab, otherPorts []int)  int {
+	for true {
+		if otherPorts != nil {
+			used := false
+			for _, otherPort := range otherPorts {
+				if otherPort == port {
+					port = port + 1
+					used = true
+					break
+				}
+			}
+			if ! used && tabs != nil {
+				for _, tab := range tabs {
+					if tab.Port == port {
+						port = port + 1
+						used = true
+						break
+					}
+				}
+			}
+			if used {
+				continue
+			} else {
+				return port
+			}
+		}
+	}
+	return port
+}
+
 func (baseEnvManager *BaseKubeEnvManager) GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error) {
 	tabs, err := baseEnvManager.GetDeploymentTabsFromDockerCompose(session, repo)
 	if err != nil {
 		return nil, err
 	}
 	// ports
+	logPort := baseEnvManager.GetAvailableDeploymentPort(DefaultLogPort, tabs, nil)
+	editorPort := baseEnvManager.GetAvailableDeploymentPort(DefaultEditorPort, tabs, []int{logPort})
+	appProxyPort := baseEnvManager.GetAvailableDeploymentPort(DefaultAppProxyPort, tabs, []int{logPort, editorPort})
+	// details
 	details := &DeploymentDetails{}
-	details.LogPort = DefaultLogPort
-	details.EditorPort = DefaultEditorPort
-	details.AppProxyPort = DefaultAppProxyPort
+	details.LogPort = strconv.Itoa(logPort)
+	details.EditorPort = strconv.Itoa(editorPort)
+	details.AppProxyPort = strconv.Itoa(appProxyPort)
 	details.NodeHostName = NodeHostName
 	details.EnvId = envId
 	details.ClaimToken = claimToken
