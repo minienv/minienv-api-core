@@ -425,6 +425,7 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 		return nil, err
 	} else {
 		var saveDeploymentResp SaveDeploymentResponse
+		print(resp.Body)
 		err := json.NewDecoder(resp.Body).Decode(&saveDeploymentResp)
 		if err != nil {
 			return nil, err
