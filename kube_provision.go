@@ -66,7 +66,6 @@ func deployProvisioner(envManager KubeEnvManager, minienvVersion string, envId s
 	// delete example, if it exists
 	deleteProvisioner(envId, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	// create persistent volume if using host paths
-	// create persistent volume if using host paths
 	if envManager.UseHostPathPersistentVolumes() {
 		pvResponse, err := getPersistentVolume(getPersistentVolumeName(envId), kubeServiceToken, kubeServiceBaseUrl)
 		if err != nil {

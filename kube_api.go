@@ -202,6 +202,8 @@ func savePersistentVolume(yaml string, kubeServiceToken string, kubeServiceBaseU
 	if len(kubeServiceToken) > 0 {
 		req.Header.Add("Authorization", "Bearer " + kubeServiceToken)
 	}
+	log.Print("Saving persistent volume...")
+	log.Print(yaml)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Print("Error saving persistent volume: ", err)
@@ -212,7 +214,7 @@ func savePersistentVolume(yaml string, kubeServiceToken string, kubeServiceBaseU
 		if err != nil {
 			return nil, err
 		} else if savePersistentVolumeResp.Kind != "PersistentVolume" {
-			return nil, errors.New("Unable to create persistent volume")
+			return nil, errors.New("Unable to create persistent volume: " + savePersistentVolumeResp.Kind)
 		} else {
 			return &savePersistentVolumeResp, nil
 		}
