@@ -422,9 +422,9 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 	log.Print(yaml)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error saving deployment: ", err)
-		log.Println("Error saving deployment: ", resp.StatusCode)
-		log.Println("Error saving deployment: ", resp.Status)
+		log.Println("1 Error saving deployment: ", err)
+		log.Println("2 Error saving deployment: ", resp.StatusCode)
+		log.Println("3 Error saving deployment: ", resp.Status)
 		return nil, err
 	} else {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
