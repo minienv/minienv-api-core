@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -425,8 +426,11 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 		return nil, err
 	} else {
 		var saveDeploymentResp SaveDeploymentResponse
-		print(resp.Body)
-		err := json.NewDecoder(resp.Body).Decode(&saveDeploymentResp)
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			print(string(bodyBytes))
+		}
+		err = json.NewDecoder(resp.Body).Decode(&saveDeploymentResp)
 		if err != nil {
 			return nil, err
 		} else if saveDeploymentResp.Kind != "Deployment" {
