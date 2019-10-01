@@ -72,7 +72,7 @@ func deployProvisioner(envManager KubeEnvManager, minienvVersion string, envId s
 			log.Println("Error getting persistent volume: ", err)
 			return err
 		} else if pvResponse == nil {
-			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envManager.GetPersistentVolumeYamlTemplate(), envId), kubeServiceToken, kubeServiceBaseUrl)
+			_, err = savePersistentVolume(envManager.GetPersistentVolumeYaml(envManager.GetPersistentVolumeYamlTemplate(), envId, envManager.GetProvisionVolumeSize()), kubeServiceToken, kubeServiceBaseUrl)
 			if err != nil {
 				log.Println("Error saving persistent volume: ", err)
 				return err

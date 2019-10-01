@@ -25,7 +25,7 @@ type KubeEnvManager interface {
 	GetDeploymentDetails(session *Session, envId string, claimToken string, repo *DeploymentRepo) (*DeploymentDetails, error)
 	GetDeploymentYaml(session *Session, template string, details *DeploymentDetails, detailsString string, minienvVersion string, nodeNameOverride string, nodeHostProtocol string, storageDriver string, repo *DeploymentRepo, envVars map[string]string) (string)
 	GetServiceYaml(session *Session, template string, details *DeploymentDetails) (string)
-	GetPersistentVolumeYaml(template string, envId string) (string)
+	GetPersistentVolumeYaml(template string, envId string, storageSize string) (string)
 	GetPersistentVolumeClaimYaml(template string, envId string, storageSize string, storageClass string) (string)
 	SerializeDeploymentDetails(details *DeploymentDetails) (string)
 	DeserializeDeploymentDetails(detailsStr string) (*DeploymentDetails)
@@ -216,8 +216,9 @@ func (baseEnvManager *BaseKubeEnvManager) GetServiceYaml(_ *Session, template st
 	return service
 }
 
-func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeYaml(template string, envId string) (string) {
+func (baseEnvManager *BaseKubeEnvManager) GetPersistentVolumeYaml(template string, envId string, storageSize string) (string) {
 	pv := template
+	pv = strings.Replace(pv, VarPvSize, storageSize, -1)
 	pv = strings.Replace(pv, VarPvName, getPersistentVolumeName(envId), -1)
 	pv = strings.Replace(pv, VarPvPath, getPersistentVolumePath(envId), -1)
 	return pv
