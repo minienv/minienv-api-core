@@ -488,7 +488,7 @@ func getReplicaSetName(label string, kubeServiceToken string, kubeServiceBaseUrl
 	if err != nil {
 		return "", err
 	} else {
-		if getReplicaSetsResponse.Items != nil && len(getReplicaSetsResponse.Items) > 0 {
+		if getReplicaSetsResponse != nil && getReplicaSetsResponse.Items != nil && len(getReplicaSetsResponse.Items) > 0 {
 			for _, element := range getReplicaSetsResponse.Items {
 				if element.Metadata != nil && element.Metadata.Labels != nil && element.Metadata.Labels.App == label {
 					log.Printf("Replica set name for label '%s' = '%s'\n", label, element.Metadata.Name)
