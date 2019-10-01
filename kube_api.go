@@ -386,7 +386,7 @@ func deleteJob(name string, kubeServiceToken string, kubeServiceBaseUrl string, 
 }
 
 func getDeployment(name string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetDeploymentResponse, error) {
-	url := fmt.Sprintf("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s", kubeServiceBaseUrl, kubeNamespace, name)
+	url := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/deployments/%s", kubeServiceBaseUrl, kubeNamespace, name)
 	client := getHttpClient()
 	req, err := http.NewRequest("GET", url, nil)
 	if len(kubeServiceToken) > 0 {
@@ -410,7 +410,7 @@ func getDeployment(name string, kubeServiceToken string, kubeServiceBaseUrl stri
 }
 
 func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*SaveDeploymentResponse, error) {
-	url := fmt.Sprintf("%s/apis/extensions/v1beta1/namespaces/%s/deployments", kubeServiceBaseUrl, kubeNamespace)
+	url := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/deployments", kubeServiceBaseUrl, kubeNamespace)
 	client := getHttpClient()
 	req, err := http.NewRequest("POST", url, strings.NewReader(yaml))
 	req.Header.Add("Content-Type", "application/yaml")
@@ -418,14 +418,11 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 		req.Header.Add("Authorization", "Bearer " + kubeServiceToken)
 	}
 	log.Print("Saving deployment...")
-	log.Print(yaml)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error saving deployment: ", err)
 		return nil, err
 	} else {
-		log.Println("SaveDeploymentResp.StatusCode = ", resp.StatusCode)
-		log.Println("SaveDeploymentResp.Status = ", resp.Status)
 		var saveDeploymentResp SaveDeploymentResponse
 		err = json.NewDecoder(resp.Body).Decode(&saveDeploymentResp)
 		if err != nil {

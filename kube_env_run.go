@@ -150,7 +150,7 @@ func deployEnv(session *Session, envManager KubeEnvManager, minienvVersion strin
 	deployment := envManager.GetDeploymentYaml(session, envManager.GetDeploymentYamlTemplate(), details, envManager.SerializeDeploymentDetails(details), minienvVersion, nodeNameOverride, nodeHostProtocol, storageDriver, repo, envVars)
 	_, err = saveDeployment(deployment, kubeServiceToken, kubeServiceBaseUrl, kubeNamespace)
 	if err != nil {
-		log.Println("22 Error saving deployment: ", err)
+		log.Println("Error saving deployment: ", err)
 		return nil, err
 	}
 	// return
