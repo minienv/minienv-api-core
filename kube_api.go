@@ -203,7 +203,6 @@ func savePersistentVolume(yaml string, kubeServiceToken string, kubeServiceBaseU
 		req.Header.Add("Authorization", "Bearer " + kubeServiceToken)
 	}
 	log.Print("Saving persistent volume...")
-	log.Print(yaml)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Print("Error saving persistent volume: ", err)
@@ -418,6 +417,8 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 	if len(kubeServiceToken) > 0 {
 		req.Header.Add("Authorization", "Bearer " + kubeServiceToken)
 	}
+	log.Print("Saving deployment...")
+	log.Print(yaml)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error saving deployment: ", err)
