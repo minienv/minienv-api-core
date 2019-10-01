@@ -429,7 +429,9 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 	} else {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			print(string(bodyBytes))
+			log.Println(string(bodyBytes))
+		} else {
+			log.Println("1 Error parsing response: ", err)
 		}
 		var saveDeploymentResp SaveDeploymentResponse
 		err = json.NewDecoder(resp.Body).Decode(&saveDeploymentResp)
