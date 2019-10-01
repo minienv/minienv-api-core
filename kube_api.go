@@ -2,15 +2,14 @@ package minienv
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-	"crypto/tls"
 )
 
 type StatusResponse struct {
@@ -422,17 +421,11 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 	log.Print(yaml)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("1 Error saving deployment: ", err)
-		log.Println("2 Error saving deployment: ", resp.StatusCode)
-		log.Println("3 Error saving deployment: ", resp.Status)
+		log.Println("Error saving deployment: ", err)
 		return nil, err
 	} else {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println(string(bodyBytes))
-		} else {
-			log.Println("1 Error parsing response: ", err)
-		}
+		log.Println("SaveDeploymentResp.StatusCode = ", resp.StatusCode)
+		log.Println("SaveDeploymentResp.Status = ", resp.Status)
 		var saveDeploymentResp SaveDeploymentResponse
 		err = json.NewDecoder(resp.Body).Decode(&saveDeploymentResp)
 		if err != nil {
