@@ -437,7 +437,7 @@ func saveDeployment(yaml string, kubeServiceToken string, kubeServiceBaseUrl str
 
 func deleteDeployment(name string, kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (bool, error) {
 	log.Printf("Deleting deployment '%s'...\n", name)
-	url := fmt.Sprintf("%s/apis/extensions/v1beta1/namespaces/%s/deployments/%s", kubeServiceBaseUrl, kubeNamespace, name)
+	url := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/deployments/%s", kubeServiceBaseUrl, kubeNamespace, name)
 	client := getHttpClient()
 	req, err := http.NewRequest("DELETE", url, nil)
 	if len(kubeServiceToken) > 0 {
@@ -459,7 +459,7 @@ func deleteDeployment(name string, kubeServiceToken string, kubeServiceBaseUrl s
 }
 
 func getReplicaSets(kubeServiceToken string, kubeServiceBaseUrl string, kubeNamespace string) (*GetReplicaSetsResponse, error) {
-	url := fmt.Sprintf("%s/apis/extensions/v1beta1/namespaces/%s/replicasets", kubeServiceBaseUrl, kubeNamespace)
+	url := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/replicasets", kubeServiceBaseUrl, kubeNamespace)
 	client := getHttpClient()
 	req, err := http.NewRequest("GET", url, nil)
 	if len(kubeServiceToken) > 0 {
@@ -511,7 +511,7 @@ func deleteReplicaSet(label string, kubeServiceToken string, kubeServiceBaseUrl 
 	}
 	// delete replica set
 	log.Printf("Deleting replica set '%s'...\n", name)
-	url := fmt.Sprintf("%s/apis/extensions/v1beta1/namespaces/%s/replicasets/%s", kubeServiceBaseUrl, kubeNamespace, name)
+	url := fmt.Sprintf("%s/apis/apps/v1/namespaces/%s/replicasets/%s", kubeServiceBaseUrl, kubeNamespace, name)
 	client := getHttpClient()
 	body := &DeleteReplicaSetBody{Kind: "DeleteOptions", OrphanDependents: false}
 	b := new(bytes.Buffer)
