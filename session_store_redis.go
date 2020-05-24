@@ -1,9 +1,9 @@
 package minienv
 
 import (
-	"log"
-	"github.com/go-redis/redis"
 	"encoding/json"
+	"github.com/go-redis/redis"
+	"log"
 	"strconv"
 )
 
@@ -18,7 +18,7 @@ func NewRedisSessionStore(address string, password string, dbStr string) (*Redis
 		Password: password,
 		DB: int(db),
 	})
-	_, err := client.Ping().Result()
+	_, err := client.Ping(client.Context()).Result()
 	if err != nil {
 		log.Printf("Failed to ping Redis: %v\n", err)
 		return nil, err
@@ -34,7 +34,7 @@ func (store RedisSessionStore) SetSession(id string, session *Session) (error) {
 		return err
 	}
 	log.Printf("Redis setting session: %s\n", string(bs))
-	err = store.Client.Set(id, bs, 0).Err()
+	err = store.Client.Set(store.Client.Context(), id, bs, 0).Err()
 	if err != nil {
 		log.Printf("Redis error setting session: %v\n", err)
 		return err
@@ -43,7 +43,7 @@ func (store RedisSessionStore) SetSession(id string, session *Session) (error) {
 }
 
 func (store RedisSessionStore) GetSession(id string) (*Session, error) {
-	bs, err := store.Client.Get(id).Bytes()
+	bs, err := store.Client.Get(store.Client.Context(), id).Bytes()
 	if err != nil {
 		return nil, err
 	}
